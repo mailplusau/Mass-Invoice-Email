@@ -106,6 +106,10 @@ function emailInvoice(recId, invoiceDetail, emailSender) {
 
         // Establish the recipiant. (Note that this can either be the internal id or email address.)
         var emailCustomer = invoiceDetail.getValue('entity');
+        var mpexUsageReport = invoiceDetail.getValue('custbody_mpex_usage_report');
+
+        nlapiLogExecution('debug', 'mpexUsageReport', mpexUsageReport);
+
         // var emailCCEmail = invoiceDetail.getValue('custentity_alt_invoicing_email_address', 'customer');
         var customer_id = invoiceDetail.getValue('internalid', 'customer');
         // var emailCCEmail = isNullorEmpty(emailCCEmail) ? null : '[' +emailCCEmail;
@@ -149,7 +153,10 @@ function emailInvoice(recId, invoiceDetail, emailSender) {
         arrAttachments = [];
 
         arrAttachments.push(nlapiPrintRecord('TRANSACTION', recId, 'PDF', null));
-        arrAttachments.push(nlapiLoadFile(parseInt(2511427)));
+        if(!isNullorEmpty(mpexUsageReport)){
+           arrAttachments.push(nlapiLoadFile(parseInt(mpexUsageReport))); 
+        }
+        arrAttachments.push(nlapiLoadFile(parseInt(3549477)));
 
         nlapiLogExecution('debug', 'Email invoice', 'Customer : ' + recId + '. Email created : ' + !isNullorEmpty(emailFile));
 
