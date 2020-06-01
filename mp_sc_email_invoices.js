@@ -156,7 +156,7 @@ function emailInvoice(recId, invoiceDetail, emailSender) {
         if(!isNullorEmpty(mpexUsageReport)){
            arrAttachments.push(nlapiLoadFile(parseInt(mpexUsageReport))); 
         }
-        arrAttachments.push(nlapiLoadFile(parseInt(3549477)));
+        // arrAttachments.push(nlapiLoadFile(parseInt(3549477)));
 
         nlapiLogExecution('debug', 'Email invoice', 'Customer : ' + recId + '. Email created : ' + !isNullorEmpty(emailFile));
 
