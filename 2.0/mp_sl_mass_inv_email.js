@@ -136,8 +136,29 @@
             }).defaultValue = inlineHtml;
 
             form.addField({
-                id: 'custpage_service_debt_zee_id',
-                label: 'Franchisee ID',
+                id: 'custpage_mass_inv_email_zee_set',
+                label: 'Franchisee Set',
+                type: ui.FieldType.TEXT
+            }).updateDisplayType({
+                displayType: ui.FieldDisplayType.HIDDEN
+            });
+            form.addField({
+                id: 'custpage_mass_inv_email_task_set',
+                label: 'Task Id Set',
+                type: ui.FieldType.TEXT
+            }).updateDisplayType({
+                displayType: ui.FieldDisplayType.HIDDEN
+            });
+            form.addField({
+                id: 'custpage_mass_inv_email_tot_num_inv',
+                label: 'Total Invoice Count',
+                type: ui.FieldType.TEXT
+            }).updateDisplayType({
+                displayType: ui.FieldDisplayType.HIDDEN
+            });
+            form.addField({
+                id: 'custpage_mass_inv_email_user_email',
+                label: 'User Email',
                 type: ui.FieldType.TEXT
             }).updateDisplayType({
                 displayType: ui.FieldDisplayType.HIDDEN
@@ -153,17 +174,22 @@
         } else {
             var params = context.request.parameters;
 
-            var customerId = params.custpage_service_debt_cust_id;
-            var zeeId = parseInt(params.custpage_service_debt_zee_id);
+            var zeeSet = params.custpage_mass_inv_email_zee_set;
+            var taskIdSet = params.custpage_mass_inv_email_task_set;
+            var totalInvCount = parseInt(params.custpage_mass_inv_email_tot_num_inv);
+            var user_email = params.custpage_mass_inv_email_user_email
 
             // CALL SCHEDULED SCRIPT
             var params = {
-                custscript_ss_serv_debt_zee_id: zeeId,
+                custscript_ss_mass_inv_email_zee_set: zeeSet,
+                custscript_ss_mass_inv_email_task_set: taskIdSet,
+                custscript_ss_mass_inv_email_tot_num_inv: totalInvCount,
+                custscript_ss_mass_inv_email_user_email: user_email,                
             }
             var scriptTask = task.create({
                 taskType: task.TaskType.SCHEDULED_SCRIPT,
-                scriptId: 'customscript_ss_service_debt',
-                deploymentId: 'customdeploy1',
+                scriptId: 'customscript_ss_mass_inv_email',
+                deploymentId: 'customdeploy_ss_mass_inv_email',
                 params: params
             });
             var ss_id = scriptTask.submit();
@@ -174,17 +200,16 @@
                 title: 'Task Status',
                 details: myTaskStatus
             });
-
             // Redirect
-            var params2 = {zeeid: zeeId}
-            redirect.toSuitelet({
-                scriptId: 'customscript_sl_service_debt',
-                deploymentId: 'customdeploy_sl_service_debt',
-                parameters: params2
-            });
+            // var params2 = {zeeid: zeeId}
+            // redirect.toSuitelet({
+            //     scriptId: 'customscript_sl_service_debt',
+            //     deploymentId: 'customdeploy_sl_service_debt',
+            //     parameters: params2
+            // });
 
             // Create Loading Sequence.
-            var form = ui.createForm({ title: 'Service Debtors - Schedule Emails' });
+            var form = ui.createForm({ title: ' ' });
 
             var inlineHtml = '<script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha384-nvAa0+6Qg9clwYCGGPpDQLVpLNn0fRaROjHqs13t4Ggj3Ez50XnGQqc/r8MhnRDZ" crossorigin="anonymous"></script>';
             // Load Tooltip
@@ -202,9 +227,30 @@
             inlineHtml += '<link type="text/css" rel="stylesheet" href="https://1048144.app.netsuite.com/core/media/media.nl?id=2090583&c=1048144&h=a0ef6ac4e28f91203dfe&_xt=.css">';
             inlineHtml += '<style>.mandatory{color:red;}</style>';
 
+            // inlineHtml += '<div class="a" style="width: 100%; background-color: #CFE0CE; padding: 20px; min-height: 100vh; height: 100%; ">'; // margin-top: -40px
+            // inlineHtml += '<h1 style="text-align: center; color: #103D39; display: inline-block; font-size: 22px; font-weight: bold; line-height: 33px; vertical-align: top; margin-bottom: 4px;">Service Debtors Email Automation</h1>';
+            inlineHtml += '<style>.nav > li.active > a, .nav > li.active > a:focus, .nav > li.active > a:hover { background-color: #379E8F; color: #fff }';
+            inlineHtml += '.nav > li > a, .nav > li > a:focus, .nav > li > a:hover { margin-left: 5px; margin-right: 5px; border: 2px solid #379E8F; color: #379E8F; }';
+            inlineHtml += '</style>';
+
+            // Define alert window.
+            inlineHtml += '<div class="container" style="margin-top:14px;" hidden><div id="alert" class="alert alert-danger fade in"></div></div>';
+
+            // Define information window.
+            inlineHtml += '<div class="container" hidden><p id="info" class="alert alert-info"></p></div>';
             inlineHtml += '<div style="margin-top: -40px"><br/>';
 
+            // Buttons
+            // inlineHtml += '<button style="margin-left: 10px; margin-right: 5px; background-color: #FBEA51; color: #103D39; font-weight: 700; border-color: transparent; border-width: 2px; border-radius: 15px; height: 30px" type="button" id="new_agreement" onclick="">New Franchisee Agreement</button>';
+            inlineHtml += '<h1 style="font-size: 25px; font-weight: 700; color: #103D39; text-align: center">Mass Invoice Email: Progress Info</h1>';
+
+            inlineHtml += goBack();
+
             inlineHtml += 'Scheduled Emails Being Processed. Redirecting ...'
+
+            inlineHtml += progressBar(totalInvCount);
+
+            inlineHtml += dataTable2();
 
             inlineHtml += '</div>' //</div>
 
@@ -215,6 +261,14 @@
             }).updateLayoutType({
                 layoutType: ui.FieldLayoutType.STARTROW
             }).defaultValue = inlineHtml;
+
+            form.addField({
+                id: 'custpage_mass_inv_email_task_set',
+                label: 'Franchisee Set',
+                type: ui.FieldType.TEXT
+            }).updateDisplayType({
+                displayType: ui.FieldDisplayType.HIDDEN
+            });
 
             form.clientScriptFileId = 5881059; // Sandbox:  | Prod: 5881059
 
@@ -244,6 +298,29 @@
 
         return inlineQty;
     }
+
+    /**
+     * The table that will display the differents invoices linked to the franchisee and the time period.
+     * @return  {String}    inlineQty
+     */
+     function dataTable2() {
+        var inlineQty = '<style>table#data_preview2 {font-size: 12px;text-align: center;border: none; background-color: white;}.dataTables_wrapper {font-size: 14px;}table#data_preview2 th{text-align: center;} .bolded{font-weight: bold;} </style>';
+        
+        // inlineQty += '<div style="width: 75%;">'
+        inlineQty += '<table id="data_preview2" class="table table-responsive table-striped customer tablesorter">'; // style="width: 75%;"
+        inlineQty += '<thead style="color: white; background-color: #379E8F;">';
+        inlineQty += '<tr class="text-center">';
+        inlineQty += '</tr>';
+        inlineQty += '</thead>';
+
+        inlineQty += '<tbody id="result_data" class="result-data"></tbody>';
+
+        inlineQty += '</table>';
+
+        // inlineQty += '</div>';
+
+        return inlineQty;
+    }
     
     function submit() {
         // Save Edit
@@ -253,7 +330,7 @@
         inlineQty += '<div class="col-xs-4"></div>';
         inlineQty += '<div class="col-4">';
         // inlineQty += '<input type="button" style="background-color: #379E8F; color: white; font-weight: 700; border-color: transparent; border-width: 2px; border-radius: 15px; height: 30px;"  id="submit" value=""></input>';
-        inlineQty += '<button style="background-color: #379E8F; color: white; font-weight: 700; border-color: transparent; border-width: 2px; border-radius: 15px; height: 30px" type="button" id="submit" class="col-xs-4 submit_btn hide" >Schedule Emails</button>';
+        inlineQty += '<button style="background-color: #379E8F; color: white; font-weight: 700; border-color: transparent; border-width: 2px; border-radius: 15px; height: 30px" type="button" id="submit" class="col-xs-4 submit_btn hide" >Submit</button>';
         inlineQty += '</div>';
         inlineQty += '<div class="col-xs-4"></div>';
 
@@ -283,8 +360,24 @@
      */
     function progressBar(nb_records_total) {
         var inlineQty = '<div class="progress">';
-        inlineQty += '<div class="progress-bar progress-bar-warning" id="progress-records" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="' + nb_records_total + '" style="width:0%">MPEX records moved : 0 / ' + nb_records_total + '</div>';
+        inlineQty += '<div class="progress-bar progress-bar-warning" id="progress-records" role="progressbar" aria-valuenow="1" aria-valuemin="0" aria-valuemax="' + nb_records_total + '" style="width:50%">Total Number of Invoices Emailed : 1 / ' + nb_records_total + '</div>';
         inlineQty += '</div>';
+        return inlineQty;
+    }
+
+    function goBack() {
+        // Save Edit
+        var inlineQty = '<div class="container">'; //style="margin-top: 20px;"
+        inlineQty += '<div class="row justify-content-center">';
+
+        inlineQty += '<div class="col-xs-4"></div>';
+        inlineQty += '<div class="col-4">';
+        inlineQty += '<button style="background-color: #FBEA51; color: #103D39; font-weight: 700; border-color: transparent; border-width: 2px; border-radius: 15px; height: 30px" type="button" id="back" class="col-xs-4 back">Go Back</button>';
+        inlineQty += '</div>';
+        inlineQty += '<div class="col-xs-4"></div>';
+
+        inlineQty += '</div></div>';
+
         return inlineQty;
     }
 

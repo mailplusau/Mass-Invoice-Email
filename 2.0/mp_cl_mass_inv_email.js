@@ -29,7 +29,8 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
 
     var dataSet = [];
     var zeeSet = [];
-
+    var taskIdSet = [];
+    var totalCount = 0;
     
 
     // Date Today n Date Tomorrow
@@ -70,7 +71,9 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
                 { title: "Date Submitted" }, // 2
                 { title: "Name" }, // 3
                 { title: "State" }, // 4
-                { title: 'No. of Invoices' }, // 5
+                { title: 'Assigned To' },
+                { title: 'Title' }, // 5
+                { title: 'No. of Invoices' }, // 6
             ],
             
             columnDefs: [
@@ -92,24 +95,40 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
         });
 
         // Toggle Customer In List
-        $(document).on('click', '.zee-include', function(){
+        $(document).on('click', '#zee-include', function(){
             var zeeId = $(this).attr('zee-id');
-
-            $(this).parent().css('background-color', 'rgba(144, 238, 144, 0.75)'); // Green
+            var taskId = $(this).attr('task-id');
+            var invCount = $(this).attr('inv-count');
 
             if ($(this).hasClass('active')){ // Active
-                if (zeeSet.indexOf(zeeId) == -1){
-                    zeeSet.push(zeeId);
-                }
-            } else { // Not Active
-                const zeeIndex = zeeSet.indexOf(zeeId);
+                $(this).parent().parent().css('background-color', ''); // Blank
+                $(this).removeClass('active')
+
+                var zeeIndex = zeeSet.indexOf(zeeId);
+                var taskIndex = taskIdSet.indexOf(taskId);
                 if (zeeIndex > -1){
+                    totalCount = parseInt(totalCount) - parseInt(invCount);
                     zeeSet.splice(zeeIndex, 1);
+                    taskIdSet.splice(taskIndex, 1);
                     $(this).css('background-color', '')
                 }   
+            } else { // Not Active
+                $(this).parent().parent().css('background-color', 'rgba(144, 238, 144, 0.75)'); // Green
+                $(this).addClass('active')
+
+                if (zeeSet.indexOf(zeeId) == -1){
+                    totalCount = parseInt(totalCount) + parseInt(invCount)
+                    zeeSet.push(zeeId);
+                    taskIdSet.push(taskId);
+                }
             }
+            console.log('Franchisee ID Set')
             console.log(zeeSet)
-        })
+            console.log('Task ID Set')
+            console.log(taskIdSet)
+            console.log('Total Invoice Count')
+            console.log(totalCount)
+        });
 
         $('#submit').click(function(){
             console.log('On Click : Cust Length ' + zeeSet.length);
@@ -117,8 +136,48 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
                 // Trigger Submit
                 $('#submitter').trigger('click');
             } else {
-                alert('No Customers Selected');
+                alert('WARNING: No Franchisees Selected');
             }
+        })
+
+        /**
+         *  Progress Bar Info
+         */
+         var dataSet2 = [
+            [
+                'Test', //0
+                'Test', //1
+                'Test', // 2
+                'Test', // 3
+                'Test', // 4
+                'Test', // 5
+                'Test', // 6
+            ]
+        ]
+         var dataTable = $("#data_preview2").DataTable({
+            data: dataSet2,
+            // pageLength: 100,
+            // autoWidth: false,
+            // order: [2, 'asc'], // Company Name
+            columns: [ 
+                { title: 'Date' },// 0
+                { title: 'Document Number' },// 1
+                { title: 'Customer ID' }, // 2
+                { title: 'Customer Name' }, // 3
+                { title: 'Invoice Type' }, // 4
+                { title: 'Total Amount' }, // 5
+                { title: 'Days Open' }, // 6
+            ],
+        });
+        // Toggle Customer In List
+        $(document).on('click', '.back', function(){
+            var inv_id = $(this).val();
+
+            var upload_url = baseURL + url.resolveScript({
+                deploymentId: "customdeploy_sl_mass_inv_email",
+                scriptId: "customscript_sl_mass_inv_email",
+            });
+            window.location.href = upload_url;
         })
     }
 
@@ -135,9 +194,11 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
         var searchZeeList = search.load({ type: 'task', id: 'customsearch_fr_mthly_inv_complete_3_2' })
         // searchZeeList.filters.push
         searchZeeList.run().each(function(res){
-            // var internalid = res.getValue('internalid');
+            var task_id = res.getValue('internalid');
             var date_created = res.getValue({ name: 'createddate' });
             var zee_id = res.getValue({ name: 'assigned' });
+            var title = res.getValue({ name: 'title' });
+            var assigned_to = res.getText({ name: 'custevent2' })
             
             var zee = record.load({ type: 'partner', id: zee_id });
             var zee_name = zee.getValue({ fieldId: 'companyname' })
@@ -154,13 +215,14 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
             var inline_link = '<a href=' + upload_url + '>' + nb_invoices + '</a>';        
 
             dataSet.push([
-                '<input class="form-check-input" type="checkbox" zee-id="'+zee_id+'" id="zee-include">',
+                '<input class="form-check-input" type="checkbox" zee-id="'+zee_id+'" inv-count="'+nb_invoices+'" task-id="'+task_id+'" id="zee-include">',
                 zee_id,
                 date_created,
                 zee_name,
                 zee_state,
+                assigned_to,
+                title,
                 inline_link,
-                // '<button type="button" class="zee-include btn btn-sm btn-outline-primary" data-toggle="button"  aria-pressed="false">Include Franchisee</button>'
             ])
             return true;
         });
@@ -168,7 +230,86 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
     }
 
     function saveRecord(context) {
+        console.log('Save Record Activated');
+
+        currRec.setValue({ fieldId: 'custpage_mass_inv_email_zee_set', value: zeeSet });
+        currRec.setValue({ fieldId: 'custpage_mass_inv_email_task_set', value: taskIdSet });
+        currRec.setValue({ fieldId: 'custpage_mass_inv_email_tot_num_inv', value: totalCount }); //
+        currRec.setValue({ fieldId: 'custpage_mass_inv_email_user_email', value: user_email });
+
+        // taskIdSet.forEach(function(taskId){
+        //     var taskRec = record.load({ type: 'task', id: taskId});
+        //     taskRec.setValue({ fieldId: 'status', value: "COMPLETE" }) // Set to Completed;
+        //     taskRec.save();
+        // })
+
+        var nb_inv_left_to_email = 10;
+        // var resultSetLength = nlapiGetFieldValue('custpage_result_set_length');
+        if (!isNullorEmpty(totalCount) && totalCount.length > 0) {
+            var progressBar = setInterval(function(){ updateProgressBar(totalCount, nb_inv_left_to_email) }, 5000);
+        }
+
         return true;
+    }
+
+    /** 
+     * Function called every 5 seconds until the bar is complete.
+     * It performs a search to get the number of remaining results in the search.
+    */
+    function updateProgressBar(totalCount, nb_inv_left_to_email) {
+        // var selector_id = nlapiGetFieldValue('custpage_selector_id');
+        // var selector_type = nlapiGetFieldValue('custpage_selector_type');
+        // var resultSetLength = nlapiGetFieldValue('custpage_result_set_length');
+        // var timestamp = nlapiGetFieldValue('custpage_timestamp');
+
+        console.log("updateProgressBar is running");
+        if (!isNullorEmpty(totalCount) && totalCount.length > 0) {
+            // try {
+                // var barcodes_list = getBarcodesIDsList();
+                // var resultCustomerProductSet = loadCustomerProductStockSearch(barcodes_list, true);
+
+                // var nb_inv_left_to_email = getResultSetLength(resultCustomerProductSet);
+                nb_inv_left_to_email--;
+
+                console.log("Nb records left to move : ", nb_inv_left_to_email);
+                if (nb_inv_left_to_email == 0) {
+                    clearInterval(progressBar);
+                    $('#progress-records').attr('class', 'progress-bar progress-bar-success');
+                    displayMovedBarcodes();
+                }
+
+                var nb_records_moved = totalCount - nb_inv_left_to_email;
+                var width = parseInt((nb_records_moved / totalCount) * 100);
+
+                $('#progress-records').attr('aria-valuenow', nb_records_moved);
+                $('#progress-records').attr('style', 'width:' + width + '%');
+                $('#progress-records').text('Total Number of Invoices Emailed : ' + nb_records_moved + ' / ' + totalCount);
+                console.log("nb_records_moved : ", nb_records_moved);
+                console.log("width : ", width);
+            // } 
+            // catch (e) {
+            //     if (e instanceof nlobjError) {
+            //         if (e.getCode() == "SCRIPT_EXECUTION_USAGE_LIMIT_EXCEEDED") {
+
+            //             var params = {
+            //                 custscript_ss_mass_inv_email_zee_set: zeeSet,
+            //                 custscript_ss_mass_inv_email_task_set: taskIdSet,
+            //                 custscript_ss_mass_inv_email_tot_num_inv: totalInvCount,
+            //             }
+
+            //             var params_progress = {
+            //                 custparam_selector_id: selector_id,
+            //                 custparam_selector_type: selector_type,
+            //                 custparam_result_set_length: totalInvCount,
+            //                 custparam_timestamp: timestamp
+            //             };
+            //             params_progress = JSON.stringify(params_progress);
+            //             var reload_url = baseURL + nlapiResolveURL('suitelet', 'customscript_sl_reallocated_barcodes', 'customdeploy_sl_reallocated_barcodes') + '&custparam_params=' + params_progress;
+            //             window.open(reload_url, "_self");
+            //         }
+            //     }
+            // }
+        }
     }
 
     /**

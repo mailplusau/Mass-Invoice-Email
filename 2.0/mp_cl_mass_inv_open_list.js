@@ -67,7 +67,7 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
 
         var dataTable = $("#data_preview").DataTable({
             data: dataSet,
-            // pageLength: 100,
+            pageLength: 100,
             // autoWidth: false,
             order: [3, 'asc'], // Company Name
             columns: [ 
@@ -103,7 +103,7 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
         $(document).on('click', '.edit', function(){
             var inv_id = $(this).attr('id');
 
-            var upload_url = baseURL + '/app/accounting/transactions/custinvc.nl?id=' + inv_id;
+            var upload_url = baseURL + '/app/accounting/transactions/custinvc.nl?id=' + inv_id +'&e=T';
             window.location.href = upload_url;
         })
 
