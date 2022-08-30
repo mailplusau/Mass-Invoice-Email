@@ -104,7 +104,8 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
             var inv_id = $(this).attr('id');
 
             var upload_url = baseURL + '/app/accounting/transactions/custinvc.nl?id=' + inv_id +'&e=T';
-            window.location.href = upload_url;
+            // window.location.href = upload_url;
+            window.open(upload_url, '_blank')
         })
 
         // Toggle Customer In List

@@ -28,10 +28,15 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
     var ctx = runtime.getCurrentScript();
 
     var dataSet = [];
+    var dataSet2 = [];
+
     var zeeSet = [];
     var taskIdSet = [];
-    var totalCount = 0;
     
+    var progressBar;
+    var totalCount = 0;
+    var nb_emailed = 0;
+    var listID = [];
 
     // Date Today n Date Tomorrow
     var today_date = new Date(); // Test Time 6:00pm - '2022-06-29T18:20:00.000+10:00'
@@ -44,6 +49,7 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
      * On page initialisation
      */
     function pageInit() {
+        /** IF */
         // Background-Colors
         $("#NS_MENU_ID0-item0").css("background-color", "#CFE0CE");
         $("#NS_MENU_ID0-item0 a").css("background-color", "#CFE0CE");
@@ -110,7 +116,6 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
                     totalCount = parseInt(totalCount) - parseInt(invCount);
                     zeeSet.splice(zeeIndex, 1);
                     taskIdSet.splice(taskIndex, 1);
-                    $(this).css('background-color', '')
                 }   
             } else { // Not Active
                 $(this).parent().parent().css('background-color', 'rgba(144, 238, 144, 0.75)'); // Green
@@ -140,45 +145,42 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
             }
         })
 
-        /**
-         *  Progress Bar Info
-         */
-         var dataSet2 = [
-            [
-                'Test', //0
-                'Test', //1
-                'Test', // 2
-                'Test', // 3
-                'Test', // 4
-                'Test', // 5
-                'Test', // 6
-            ]
-        ]
-         var dataTable = $("#data_preview2").DataTable({
-            data: dataSet2,
-            // pageLength: 100,
-            // autoWidth: false,
-            // order: [2, 'asc'], // Company Name
-            columns: [ 
-                { title: 'Date' },// 0
-                { title: 'Document Number' },// 1
-                { title: 'Customer ID' }, // 2
-                { title: 'Customer Name' }, // 3
-                { title: 'Invoice Type' }, // 4
-                { title: 'Total Amount' }, // 5
-                { title: 'Days Open' }, // 6
-            ],
-        });
-        // Toggle Customer In List
-        $(document).on('click', '.back', function(){
-            var inv_id = $(this).val();
+        /** ELSE */
+        var get_Method = currRec.getValue({ fieldId: 'custpage_mass_inv_email_method' });
+        if (get_Method == 'POST'){
+            totalCount = parseInt(currRec.getValue({ fieldId: 'custpage_mass_inv_email_tot_num_inv' }));
+            console.log('Total Count: ' + totalCount);
+            // if (!isNullorEmpty(totalCount) && totalCount.length > 0) {
+                progressBar = setInterval(updateProgressBar, 1000, totalCount);
+            // }
 
-            var upload_url = baseURL + url.resolveScript({
-                deploymentId: "customdeploy_sl_mass_inv_email",
-                scriptId: "customscript_sl_mass_inv_email",
+            /*  Progress Bar Info*/
+            var dataTable = $("#data_preview2").DataTable({
+                data: dataSet2,
+                pageLength: 100,
+                // autoWidth: false,
+                // order: [2, 'asc'], // Company Name
+                columns: [ 
+                    { title: 'Emailed?' },// 0
+                    { title: 'Document Number' },// 1
+                    { title: 'Customer ID' }, // 2
+                    { title: 'Customer Name' }, // 3
+                    { title: 'Invoice Type' }, // 4
+                    { title: 'Total Amount' }, // 5
+                    // { title: 'Days Open' }, // 6
+                ],
             });
-            window.location.href = upload_url;
-        })
+            // Toggle Customer In List
+            $(document).on('click', '.back', function(){
+                var inv_id = $(this).val();
+
+                var upload_url = baseURL + url.resolveScript({
+                    deploymentId: "customdeploy_sl_mass_inv_email",
+                    scriptId: "customscript_sl_mass_inv_email",
+                });
+                window.location.href = upload_url;
+            })
+        }
     }
 
     function loadZeeList(){
@@ -243,12 +245,6 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
         //     taskRec.save();
         // })
 
-        var nb_inv_left_to_email = 10;
-        // var resultSetLength = nlapiGetFieldValue('custpage_result_set_length');
-        if (!isNullorEmpty(totalCount) && totalCount.length > 0) {
-            var progressBar = setInterval(function(){ updateProgressBar(totalCount, nb_inv_left_to_email) }, 5000);
-        }
-
         return true;
     }
 
@@ -256,60 +252,84 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
      * Function called every 5 seconds until the bar is complete.
      * It performs a search to get the number of remaining results in the search.
     */
-    function updateProgressBar(totalCount, nb_inv_left_to_email) {
-        // var selector_id = nlapiGetFieldValue('custpage_selector_id');
-        // var selector_type = nlapiGetFieldValue('custpage_selector_type');
-        // var resultSetLength = nlapiGetFieldValue('custpage_result_set_length');
-        // var timestamp = nlapiGetFieldValue('custpage_timestamp');
-
+    function updateProgressBar(totalCount) {
         console.log("updateProgressBar is running");
-        if (!isNullorEmpty(totalCount) && totalCount.length > 0) {
-            // try {
-                // var barcodes_list = getBarcodesIDsList();
-                // var resultCustomerProductSet = loadCustomerProductStockSearch(barcodes_list, true);
+        // try {
+            nb_emailed = lengthSentList();
 
-                // var nb_inv_left_to_email = getResultSetLength(resultCustomerProductSet);
-                nb_inv_left_to_email--;
+            console.log("Nb records moves : ", nb_emailed);
+            if (nb_emailed == totalCount) {
+                clearInterval(progressBar);
+                $('#progress-records').attr('class', 'progress-bar progress-bar-success');
+            }
 
-                console.log("Nb records left to move : ", nb_inv_left_to_email);
-                if (nb_inv_left_to_email == 0) {
-                    clearInterval(progressBar);
-                    $('#progress-records').attr('class', 'progress-bar progress-bar-success');
-                    displayMovedBarcodes();
-                }
+            var width = parseInt((nb_emailed / totalCount) * 100);
 
-                var nb_records_moved = totalCount - nb_inv_left_to_email;
-                var width = parseInt((nb_records_moved / totalCount) * 100);
+            $('#progress-records').attr('aria-valuenow', nb_emailed);
+            $('#progress-records').attr('style', 'width:' + width + '%');
+            $('#progress-records').text('Total Number of Invoices Emailed : ' + nb_emailed + ' / ' + totalCount);
+            console.log("width : ", width);
+        // } catch (e) {
+        //     if (e instanceof nlobjError) {
+        //         if (e.getCode() == "SCRIPT_EXECUTION_USAGE_LIMIT_EXCEEDED") {
+        //             var params = {
+        //                 custscript_ss_mass_inv_email_zee_set: zeeSet,
+        //                 custscript_ss_mass_inv_email_task_set: taskIdSet,
+        //                 custscript_ss_mass_inv_email_tot_num_inv: totalInvCount,
+        //             }
+        //             var params_progress = {
+        //                 custparam_selector_id: selector_id,
+        //                 custparam_selector_type: selector_type,
+        //                 custparam_result_set_length: totalInvCount,
+        //                 custparam_timestamp: timestamp
+        //             };
+        //             params_progress = JSON.stringify(params_progress);
+        //             var reload_url = baseURL + nlapiResolveURL('suitelet', 'customscript_sl_reallocated_barcodes', 'customdeploy_sl_reallocated_barcodes') + '&custparam_params=' + params_progress;
+        //             window.open(reload_url, "_self");
+        //         }
+        //     }
+        // }
+    }
 
-                $('#progress-records').attr('aria-valuenow', nb_records_moved);
-                $('#progress-records').attr('style', 'width:' + width + '%');
-                $('#progress-records').text('Total Number of Invoices Emailed : ' + nb_records_moved + ' / ' + totalCount);
-                console.log("nb_records_moved : ", nb_records_moved);
-                console.log("width : ", width);
-            // } 
-            // catch (e) {
-            //     if (e instanceof nlobjError) {
-            //         if (e.getCode() == "SCRIPT_EXECUTION_USAGE_LIMIT_EXCEEDED") {
+    function lengthSentList(){
+        
+        var sea = search.load({
+            id: 'customsearch_mass_inv_email_list_2',
+            type: 'customrecord_mass_inv_email_list'
+        });
+        var result = sea.run();
+        result.each(function(res){
+            var internalid = res.getValue({ name: 'internalid' });
 
-            //             var params = {
-            //                 custscript_ss_mass_inv_email_zee_set: zeeSet,
-            //                 custscript_ss_mass_inv_email_task_set: taskIdSet,
-            //                 custscript_ss_mass_inv_email_tot_num_inv: totalInvCount,
-            //             }
+            var doc_num = res.getValue({ name: 'custrecord_mass_inv_email_doc_num' })
+            var entityid = res.getValue({ name: 'custrecord_mass_inv_email_entityid' })
+            var companyname = res.getValue({ name: 'custrecord_mass_inv_email_companyname' })
+            var inv_type = res.getValue({ name: 'custrecord_mass_inv_email_inv_type' })
+            var tot_am = res.getValue({ name: 'custrecord_mass_inv_email_tot_am' })
+            // var days_open = res.getValue({ name: 'custrecord_mass_inv_email_days_open' });
+            if (listID.indexOf(internalid) == -1){
+                dataSet2.push([
+                    'YES', //0
+                    doc_num, //1
+                    entityid, // 2
+                    companyname, // 3
+                    inv_type, // 4
+                    tot_am, // 5
+                    // days_open, // 6
+                ]) 
+                nb_emailed++; 
+            }
+            listID.push(internalid);
 
-            //             var params_progress = {
-            //                 custparam_selector_id: selector_id,
-            //                 custparam_selector_type: selector_type,
-            //                 custparam_result_set_length: totalInvCount,
-            //                 custparam_timestamp: timestamp
-            //             };
-            //             params_progress = JSON.stringify(params_progress);
-            //             var reload_url = baseURL + nlapiResolveURL('suitelet', 'customscript_sl_reallocated_barcodes', 'customdeploy_sl_reallocated_barcodes') + '&custparam_params=' + params_progress;
-            //             window.open(reload_url, "_self");
-            //         }
-            //     }
-            // }
-        }
+            return true;
+        });
+        
+        var datatable = $("#data_preview2").DataTable();
+        datatable.clear();
+        datatable.rows.add(dataSet2);
+        datatable.draw();
+
+        return nb_emailed;
     }
 
     /**

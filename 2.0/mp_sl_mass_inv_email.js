@@ -163,6 +163,13 @@
             }).updateDisplayType({
                 displayType: ui.FieldDisplayType.HIDDEN
             });
+            form.addField({
+                id: 'custpage_mass_inv_email_method',
+                label: 'Method',
+                type: ui.FieldType.TEXT
+            }).updateDisplayType({
+                displayType: ui.FieldDisplayType.HIDDEN
+            }).defaultValue = 'GET';
 
             form.addSubmitButton({
                 label: ' '
@@ -184,7 +191,7 @@
                 custscript_ss_mass_inv_email_zee_set: zeeSet,
                 custscript_ss_mass_inv_email_task_set: taskIdSet,
                 custscript_ss_mass_inv_email_tot_num_inv: totalInvCount,
-                custscript_ss_mass_inv_email_user_email: user_email,                
+                custscript_ss_mass_inv_email_user_email: user_email,
             }
             var scriptTask = task.create({
                 taskType: task.TaskType.SCHEDULED_SCRIPT,
@@ -200,6 +207,7 @@
                 title: 'Task Status',
                 details: myTaskStatus
             });
+
             // Redirect
             // var params2 = {zeeid: zeeId}
             // redirect.toSuitelet({
@@ -261,7 +269,6 @@
             }).updateLayoutType({
                 layoutType: ui.FieldLayoutType.STARTROW
             }).defaultValue = inlineHtml;
-
             form.addField({
                 id: 'custpage_mass_inv_email_task_set',
                 label: 'Franchisee Set',
@@ -269,6 +276,20 @@
             }).updateDisplayType({
                 displayType: ui.FieldDisplayType.HIDDEN
             });
+            form.addField({
+                id: 'custpage_mass_inv_email_tot_num_inv',
+                label: 'Total Invoice Count',
+                type: ui.FieldType.TEXT
+            }).updateDisplayType({
+                displayType: ui.FieldDisplayType.HIDDEN
+            }).defaultValue = totalInvCount;
+            form.addField({
+                id: 'custpage_mass_inv_email_method',
+                label: 'Method',
+                type: ui.FieldType.TEXT
+            }).updateDisplayType({
+                displayType: ui.FieldDisplayType.HIDDEN
+            }).defaultValue = 'POST';
 
             form.clientScriptFileId = 5881059; // Sandbox:  | Prod: 5881059
 
@@ -360,7 +381,7 @@
      */
     function progressBar(nb_records_total) {
         var inlineQty = '<div class="progress">';
-        inlineQty += '<div class="progress-bar progress-bar-warning" id="progress-records" role="progressbar" aria-valuenow="1" aria-valuemin="0" aria-valuemax="' + nb_records_total + '" style="width:50%">Total Number of Invoices Emailed : 1 / ' + nb_records_total + '</div>';
+        inlineQty += '<div class="progress-bar progress-bar-warning" id="progress-records" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="' + nb_records_total + '" style="width:0%">Total Number of Invoices Emailed : 0 / ' + nb_records_total + '</div>';
         inlineQty += '</div>';
         return inlineQty;
     }

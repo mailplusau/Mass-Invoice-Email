@@ -43,34 +43,29 @@ function(ui, email, runtime, search, record, http, log, redirect, task, format, 
         });
         /**
          *  Work Flow:
-         *  
-         *  Get Array of Customer IDs Requiring Term Email.
-         * 
-         *  Push Customer As Filter on Customer Financial Terms Search
-         *      Sorted By Email First, Then Customer ID
-         * 
-         *  {
-         *      Get Invoices Associated with Customer.
-         *      Create Statement from All Invoices Listed. 
-         *  }
+         *  // Send Email
+            // Add New Line in Record
+            // Once Completed List, Delete All Records.
          */
         // Make Result Set Bigger.
         var main_index = 0;
-        var custResultSet = [];
+        var zeeResultSet = [];
+
+        // Delete List Record All.
+        deleteSentList();
+        log.debug({
+            title: 'End Scheduled Script',
+        });
 
         // Search
         var zeeSearch = search.load({ type: 'invoice', id: 'customsearch_mass_inv_email_list' });
         if (!isNullorEmpty(selectedZeeSet)){
-            log.debug({
-                title: 'Type Of',
-                details: typeof selectedZeeSet
-            });
+            // log.debug({
+            //     title: 'Type Of',
+            //     details: typeof selectedZeeSet
+            // });
             if (selectedZeeSet.length > 1){
                 selectedZeeSet = selectedZeeSet.split("\u0005") // Remove NetSuite Random Space Thingo.
-                log.debug({
-                    title: 'Split Zee Set',
-                    details: selectedZeeSet
-                });
             }
             zeeSearch.filters.push(search.createFilter({
                 name: 'partner',
@@ -84,111 +79,52 @@ function(ui, email, runtime, search, record, http, log, redirect, task, format, 
             }));
         }
         var zeeSearchRes = zeeSearch.run(); // Search Result
-        var customerSearchResLength = zeeSearch.runPaged().count;
+        var zeeResLength = zeeSearch.runPaged().count;
         log.debug({
             title: 'Search Length',
-            details: customerSearchResLength
+            details: zeeResLength
         });
         // for (var main_index = 0; main_index < 10000; main_index += 1000) {
-        //     custResultSet.push(zeeSearchRes.getRange({ start: main_index, end: main_index + 999 }));
+        //     zeeResultSet.push(zeeSearchRes.getRange({ start: main_index, end: main_index + 999 }));
         // }
-        // Search Variables
-        var invoiceIdSet = [];
-        var custIdSet = [];
-        var compNameSet = [];
-
-        var emailSet  = [];
-        var emailName = [];
-
-        var custIndex = 0;
+        var index = 0;
         zeeSearchRes.each(function(res){
             // Customer Details
             var internalid = res.getValue({ name: "internalid", join: 'customer' });
+            var entityid = res.getValue({ name: "entityid", join: 'customer' });
             var companyname = res.getValue({ name: 'companyname', join: 'customer'  });
-            if (custIdSet.indexOf(internalid) == -1){
-                custIdSet.push(internalid)
-                compNameSet.push(companyname);
-            }
             var email_address = res.getValue({ name: 'email', join: 'customer'  });
-            if (custIndex == 0){
-                emailName.push(email_address);
-            }
-            
             // Invoice Details
             var inv_id = res.getValue({ name: 'internalid' });
-            invoiceIdSet.push(inv_id);
-
-            if (emailName.indexOf(email_address) == -1 || custIndex == (customerSearchResLength-1)){ // (custIdSet.indexOf(internalid) != -1 &&
-                var tempInvIdSet = invoiceIdSet;
-                if (custIndex != (customerSearchResLength-1)){
-                    tempInvIdSet.pop();
-                }
-
-                var tempCustIdSet = custIdSet;
-                var tempCompName = compNameSet;
-                if (tempCustIdSet.length > 1){
-                    tempCustIdSet.pop();
-                    tempCompName.pop();
-                }
-
-                var tempEmail = emailName[emailName.length-1];
-                
-                emailSet.push({custSet: tempCustIdSet, compname: tempCompName, email: tempEmail, invSet: tempInvIdSet});
-                
-                emailName.push(email_address);
-                custIdSet = [internalid];
-                compNameSet = [companyname];
-                invoiceIdSet = [inv_id];
+            var inv_type = res.getText({ name: 'custbody_inv_type' });
+            var tot_am = '$' + res.getValue({ name: 'amount' });
+            if (isNullorEmpty(inv_type)) {
+                inv_type = 'Service';
             }
-            custIndex++;
+            var doc_num = res.getValue({ name: 'tranid' });
+            var days_open = res.getValue({ name: 'daysopen' });
 
-            return true;
-        });
-
-
-        // Set Task to Completed
-        /* 
-        *   Date Completed
-            Status to Completed
-        */
-        
-        log.debug({
-            title: 'emailSet',
-            details: emailSet
-        });
-        emailSet.forEach(function(custRes){
-            var email_address = custRes.email; // Email Address
-            var company_name = custRes.compname; // Company Name
-
-            var attachments = []; // Save Attachment Files to Array.
-
-            // Save Statement - First
-            var custSet = custRes.custSet;
-            log.debug({
-                title: 'Get Customer ID',
-                details: custSet
-            });
+            // Create Object
+            createSentList(inv_id, doc_num, entityid, companyname, inv_type, tot_am, days_open);
 
             // Save Invoices - Secondly
-            var invIdSet = custRes.invSet; 
+            var attachments = [];
+            var invFile = getInvoiceFiles(inv_id);
+            attachments.push(invFile);
             log.debug({
                 title: 'Get Invoice ID Set Files',
-                details: invIdSet // TEST NSW Cust 2 Invoice 3449875 - Amount = $2.20;
+                details: invFile // TEST NSW Cust 2 Invoice 3449875 - Amount = $2.20;
             });
-            invIdSet.forEach(function(id){
-                var invFile = getInvoiceFiles(id);
-                attachments.push(invFile);
-            });
-            
-            log.debug({
-                title: 'Get Attachment Data',
-                details: attachments
-            });
-            sendEmail(custSet[0], company_name, email_address, attachments, user_email) // Send Email.
-        })
+
+            //Send Email
+            sendEmail(internalid, companyname, email_address, attachments, doc_num, user_email);
+
+            index++;
+            return true;
+        });
     }
 
-    function sendEmail(custSet, company_name, email_address, attachments, user_email){
+    function sendEmail(custSet, companyname, email_address, attachments, invoice_number, user_email){
         log.debug({
             title: 'Email Address',
             details: email_address
@@ -197,9 +133,9 @@ function(ui, email, runtime, search, record, http, log, redirect, task, format, 
         email.send({
             author: 35031, // Accounts: 35031 | Customer Service: 112209
             body: email_template, // Get Email Template
-            subject: 'Invoice Available',
+            subject: 'MailPlus Invoice: ' + invoice_number,
             recipients: ['anesu.chakaingesu@mailplus.com.au'], // | 'ankith.ravindran@mailplus.com.au' | email_address
-            cc: [user_email],
+            // cc: [user_email],
             attachments: attachments,
             // relatedRecords:{
             //     entityId: custSet // Add Email Reminder Notification as Message Under Customer
@@ -207,7 +143,7 @@ function(ui, email, runtime, search, record, http, log, redirect, task, format, 
         });
         log.debug({
             title: 'Send Out Emails: Attachments and Data',
-            details: custSet + company_name + email_address + attachments
+            details: custSet + companyname + email_address + attachments
         })
     }
 
@@ -225,7 +161,7 @@ function(ui, email, runtime, search, record, http, log, redirect, task, format, 
 
     function emailTemplate(companyname, email_address){
         var emailMerger = render.mergeEmail({
-            templateId: 363, //. Mass Invoice Email Template
+            templateId: 177, //. Mass Invoice Email Template - 363 | Invoice Email - 177
             entity: null,
             recipient: null,
             supportCaseId: null,
@@ -238,6 +174,38 @@ function(ui, email, runtime, search, record, http, log, redirect, task, format, 
             details: html_body
         })
         return html_body;
+    }
+
+    function createSentList(inv_id, doc_num, entityid, companyname, inv_type, tot_am, days_open) {
+        var sentListRec = record.create({
+            type: 'customrecord_mass_inv_email_list',
+            isDynamic: true,
+        });
+        sentListRec.setValue({ fieldId: 'name' , value: inv_id });
+        sentListRec.setValue({ fieldId: 'custrecord_mass_inv_email_doc_num' , value: doc_num});
+        sentListRec.setValue({ fieldId: 'custrecord_mass_inv_email_entityid' , value: entityid});
+        sentListRec.setValue({ fieldId: 'custrecord_mass_inv_email_companyname' , value: companyname});
+        sentListRec.setValue({ fieldId: 'custrecord_mass_inv_email_inv_type' , value: inv_type});
+        sentListRec.setValue({ fieldId: 'custrecord_mass_inv_email_tot_am' , value: tot_am});
+        sentListRec.setValue({ fieldId: 'custrecord_mass_inv_email_days_open' , value: days_open});
+        sentListRec.save();
+
+        return true;
+    }
+
+    function deleteSentList(){
+        log.debug({ title: 'Deleting Records' });
+        var invRecEmailList = search.load({
+            id: 'customsearch_mass_inv_email_list_2',
+            type: 'customrecord_mass_inv_email_list'
+        });
+        invRecEmailList.run().each(function(res){
+            record.delete({
+                type: 'customrecord_mass_inv_email_list',
+                id: res.getValue({ name: 'internalid' })
+            });
+            return true;
+        });
     }
 
     /**
