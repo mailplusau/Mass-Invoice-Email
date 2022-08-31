@@ -151,6 +151,14 @@
                 displayType: ui.FieldDisplayType.HIDDEN
             }).defaultValue = zee_id;
 
+            form.addField({
+                id: 'custpage_table_csv',
+                label: 'CSV Export',
+                type: ui.FieldType.TEXT
+            }).updateDisplayType({
+                displayType: ui.FieldDisplayType.HIDDEN
+            });
+
             form.addSubmitButton({
                 label: ' '
             });
@@ -163,10 +171,12 @@
 
             var customerId = params.custpage_service_debt_cust_id;
             var zeeId = parseInt(params.custpage_service_debt_zee_id);
+            var userId = params.custpage_mass_inv_email_user_email;
 
             // CALL SCHEDULED SCRIPT
             var params = {
                 custscript_ss_serv_debt_zee_id: zeeId,
+                custscript_ss_serv_debt_user_id: userId
             }
             var scriptTask = task.create({
                 taskType: task.TaskType.SCHEDULED_SCRIPT,
@@ -245,6 +255,9 @@
     function dataTable() {
         var inlineQty = '<style>table#data_preview {font-size: 12px;text-align: center;border: none; background-color: white;}.dataTables_wrapper {font-size: 14px;}table#data_preview th{text-align: center;} .bolded{font-weight: bold;} </style>';
         
+        // CSV Export
+        inlineQty += '<button class="csv-export btn btn-sm btn-info" type="button" id="csv-export" style="background-color: #FBEA51; color: #103D39;">CSV Export</button>'
+
         // inlineQty += '<div style="width: 75%;">'
         inlineQty += '<table id="data_preview" class="table table-responsive table-striped customer tablesorter">'; // style="width: 75%;"
         inlineQty += '<thead style="color: white; background-color: #379E8F;">';

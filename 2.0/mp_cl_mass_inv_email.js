@@ -100,6 +100,10 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
             }
         });
 
+        // Set Checkbox Checked all
+        $(".form-check-input").prop("checked", true);
+        $(".form-check-input").parent().parent().css('background-color', 'rgba(144, 238, 144, 0.75)');
+
         // Toggle Customer In List
         $(document).on('click', '#zee-include', function(){
             var zeeId = $(this).attr('zee-id');
@@ -138,8 +142,12 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
         $('#submit').click(function(){
             console.log('On Click : Cust Length ' + zeeSet.length);
             if (zeeSet.length > 0) {
-                // Trigger Submit
-                $('#submitter').trigger('click');
+                if (totalCount > 0) { 
+                    // Trigger Submit
+                    $('#submitter').trigger('click');
+                } else {
+                    alert('WARNING: No. of Invoices is 0')
+                }
             } else {
                 alert('WARNING: No Franchisees Selected');
             }
@@ -217,7 +225,7 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
             var inline_link = '<a href=' + upload_url + '>' + nb_invoices + '</a>';        
 
             dataSet.push([
-                '<input class="form-check-input" type="checkbox" zee-id="'+zee_id+'" inv-count="'+nb_invoices+'" task-id="'+task_id+'" id="zee-include">',
+                '<input class="form-check-input active" type="checkbox" zee-id="'+zee_id+'" inv-count="'+nb_invoices+'" task-id="'+task_id+'" id="zee-include">',
                 zee_id,
                 date_created,
                 zee_name,
@@ -225,7 +233,13 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
                 assigned_to,
                 title,
                 inline_link,
-            ])
+            ]);
+
+            // Auto Select All Tasks.
+            totalCount += nb_invoices
+            zeeSet.push(zee_id)
+            taskIdSet.push(task_id);
+
             return true;
         });
 
@@ -239,11 +253,12 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
         currRec.setValue({ fieldId: 'custpage_mass_inv_email_tot_num_inv', value: totalCount }); //
         currRec.setValue({ fieldId: 'custpage_mass_inv_email_user_email', value: user_email });
 
-        // taskIdSet.forEach(function(taskId){
-        //     var taskRec = record.load({ type: 'task', id: taskId});
-        //     taskRec.setValue({ fieldId: 'status', value: "COMPLETE" }) // Set to Completed;
-        //     taskRec.save();
-        // })
+        // Set Task as Completed;
+        taskIdSet.forEach(function(taskId){
+            var taskRec = record.load({ type: 'task', id: taskId});
+            taskRec.setValue({ fieldId: 'status', value: "COMPLETE" }) // Set to Completed;
+            taskRec.save();
+        })
 
         return true;
     }
@@ -261,6 +276,8 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
             if (nb_emailed == totalCount) {
                 clearInterval(progressBar);
                 $('#progress-records').attr('class', 'progress-bar progress-bar-success');
+
+                setTimeout(redirect, 5000);
             }
 
             var width = parseInt((nb_emailed / totalCount) * 100);
@@ -330,6 +347,13 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
         datatable.draw();
 
         return nb_emailed;
+    }
+
+    function redirect(){
+        redirect.toSuitelet({
+            scriptId: 'customscript_sl_mass_inv_email',
+            deploymentId: 'customdeploy_sl_mass_inv_email'
+        });
     }
 
     /**

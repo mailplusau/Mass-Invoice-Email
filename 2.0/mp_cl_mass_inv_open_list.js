@@ -117,7 +117,12 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
                 scriptId: "customscript_sl_mass_inv_email",
             });
             window.location.href = upload_url;
-        })
+        });
+
+        // CSV Export
+        $(document).on('click', '#csv-export', function(){
+            downloadCsv();
+        });
 
         $('#submit').click(function(){
             console.log('On Click : Cust Length ' + zeeSet.length);
@@ -132,6 +137,7 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
 
     function loadZeeList(zee_id){
         var debtDataSet = [];
+        var csvSet = [];
 
         var searchZeeList = search.load({ type: 'invoice', id: 'customsearch_mass_inv_email_list' }) // Mass Email Selection
         searchZeeList.filters.push(search.createFilter({
@@ -159,11 +165,11 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
 
             // Customer Info
             var customer_number = res.getValue({ name: 'internalid', join: 'customer'});
-            var customer_name = res.getValue({ name: 'altname', join: 'customer' })
+            var customer_name = res.getValue({ name: 'companyname', join: 'customer'});
 
             dataSet.push([
                 date, // 0
-                '<a href="' + baseURL + "/app/common/entity/custjob.nl?id=" + inv_id + '" target="_blank"><p class="entityid">' + doc_num + '</p></a>', // doc_num, //1 
+                '<a href="' + baseURL + "/app/accounting/transactions/custinvc.nl?id=" + inv_id + '" target="_blank"><p class="entityid">' + doc_num + '</p></a>', // doc_num, //1 
                 customer_number, //2
                 customer_name, //3
                 inv_type, //4
@@ -172,33 +178,67 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
                 // days_overdue, //6
                 '<button type="button" class="btn btn-sm btn-primary edit" data-toggle="button" id="'+inv_id+'" aria-pressed="false">EDIT</button>', //7
             ])
-            // debtDataSet.push([
-            //     date,
-            //     invoice,
-            //     maap_bank,
-            //     customer_name,
-            //     zee,
-            //     tot_num,
-            //     tot_am,
-            //     due_date,
-            //     overdue,
-            //     period,
-            //     mp_ticket,
-            //     note,
-            //     checkbox,
-            //     maap_status,
-            //     customer_id,
-            //     tick_status,
-            //     record_id,
-            //     snooze,
-            //     viewed,
-            //     inv_email_notification,
-            //     start_date,
-            //     company_name
-            // ]); //duplicate -19,
+            csvSet.push([
+                date, // 0
+                doc_num, // doc_num, //1 
+                customer_number, //2
+                customer_name, //3
+                inv_type, //4
+                tot_am, //5
+                days_open //6
+            ])
             return true;
         });
 
+        saveCsv(csvSet);
+    }
+
+    /**
+     * Create the CSV and store it in the hidden field 'custpage_table_csv' as a string.
+     * @param {Array} csvSet The `csvSet` created in `loadDatatable()`.
+     */
+    function saveCsv(csvSet) {
+        var headers = ["Date", "Document Number", "Customer ID", "Customer Name", 'Invoice Type', 'Total Amount', 'Days Open']
+        headers = headers.join(';'); // .join(', ')
+        var csv = headers + "\n";
+        csvSet.forEach(function(row) {
+            row = row.join(';');
+            csv += row;
+            csv += "\n";
+        });
+
+        var val1 = currentRecord.get();
+        val1.setValue({
+            fieldId: 'custpage_table_csv',
+            value: csv
+        });
+
+        return true;
+    }
+
+    /**
+     * Load the string stored in the hidden field 'custpage_table_csv'.
+     * Converts it to a CSV file.
+     * Creates a hidden link to download the file and triggers the click of the link.
+     */
+    function downloadCsv() {
+        var val1 = currentRecord.get();
+        var csv = val1.getValue({
+            fieldId: 'custpage_table_csv',
+        });
+        var a = document.createElement("a");
+        document.body.appendChild(a);
+        a.style = "display: none";
+        var content_type = 'text/csv';
+        var csvFile = new Blob([csv], {
+            type: content_type
+        });
+        var url = window.URL.createObjectURL(csvFile);
+        var filename = 'Mass Invoice Email - ' + zee_name + ' - ' + today_date + '.csv';
+        a.href = url;
+        a.download = filename;
+        a.click();
+        window.URL.revokeObjectURL(url);
     }
 
     function saveRecord(context) {

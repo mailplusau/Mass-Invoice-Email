@@ -23,7 +23,7 @@ function(ui, email, runtime, search, record, http, log, redirect, task, format, 
     var today_date = new Date(); // Test Time 6:00pm - '2022-06-29T18:20:00.000+10:00'
     today_date.toLocaleString('en-AU', { timeZone: 'Australia/Sydney' });
     today_date = dateISOToNetsuite(today_date);
-    // today_date = format.parse({ value: today_date, type: format.Type.DATE }); // Reformat Date
+    today_date = format.parse({ value: today_date, type: format.Type.DATE }); // Reformat Date
 
     function main() {
         // Get Results
@@ -94,6 +94,17 @@ function(ui, email, runtime, search, record, http, log, redirect, task, format, 
             var entityid = res.getValue({ name: "entityid", join: 'customer' });
             var companyname = res.getValue({ name: 'companyname', join: 'customer'  });
             var email_address = res.getValue({ name: 'email', join: 'customer'  });
+            var cc_email = res.getValue({ name: 'custentity_accounts_cc_email', join: 'customer' });
+            cc_email = cc_email.split(',');
+            var cc_address = [];
+            if (cc_email.length >= 2){
+                cc_email.forEach(function(el){
+                    cc_address.push(el);
+                });
+            } else {
+                cc_address.push(cc_email);
+            }
+
             // Invoice Details
             var inv_id = res.getValue({ name: 'internalid' });
             var inv_type = res.getText({ name: 'custbody_inv_type' });
@@ -116,15 +127,18 @@ function(ui, email, runtime, search, record, http, log, redirect, task, format, 
                 details: invFile // TEST NSW Cust 2 Invoice 3449875 - Amount = $2.20;
             });
 
+            // Set Invoice to Emailed and Date
+            setInvoiceData(inv_id);
+
             //Send Email
-            sendEmail(internalid, companyname, email_address, attachments, doc_num, user_email);
+            sendEmail(internalid, companyname, email_address, attachments, doc_num, user_email, cc_address); 
 
             index++;
             return true;
         });
     }
 
-    function sendEmail(custSet, companyname, email_address, attachments, invoice_number, user_email){
+    function sendEmail(custSet, companyname, email_address, attachments, invoice_number, user_email, cc_address){
         log.debug({
             title: 'Email Address',
             details: email_address
@@ -134,12 +148,12 @@ function(ui, email, runtime, search, record, http, log, redirect, task, format, 
             author: 35031, // Accounts: 35031 | Customer Service: 112209
             body: email_template, // Get Email Template
             subject: 'MailPlus Invoice: ' + invoice_number,
-            recipients: ['anesu.chakaingesu@mailplus.com.au'], // | 'ankith.ravindran@mailplus.com.au' | email_address
-            // cc: [user_email],
+            recipients: [email_address], //
+            cc: [cc_address],
             attachments: attachments,
-            // relatedRecords:{
-            //     entityId: custSet // Add Email Reminder Notification as Message Under Customer
-            // }
+            relatedRecords:{
+                entityId: custSet // Add Email Reminder Notification as Message Under Customer
+            }
         });
         log.debug({
             title: 'Send Out Emails: Attachments and Data',
@@ -157,6 +171,15 @@ function(ui, email, runtime, search, record, http, log, redirect, task, format, 
             details: transactionFile
         })
         return transactionFile;
+    }
+
+    function setInvoiceData(invoice_id){
+        var rec = record.load({ type: 'invoice', id: invoice_id })
+        rec.setValue({ fieldId: 'custbody_invoice_emailed_date', value: today_date });
+        rec.setValue({ fieldId: 'custbody_invoice_emailed', value: true });
+        rec.save();
+
+        return true;
     }
 
     function emailTemplate(companyname, email_address){
