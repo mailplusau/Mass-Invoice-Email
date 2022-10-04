@@ -27,7 +27,7 @@ function(ui, email, runtime, search, record, http, log, redirect, task, format, 
 
     function main() {
         // Get Results
-        var taskIdSet = ctx.getParameter({ name: 'custscript_ss_mass_inv_email_task_set'});
+        var taskIdSet = JSON.parse(JSON.stringify(ctx.getParameter({ name: 'custscript_ss_mass_inv_email_task_set'})));
         var totalInvCount = ctx.getParameter({ name: 'custscript_ss_mass_inv_email_tot_num_inv'})
         var selectedZeeSet = new Array();
         selectedZeeSet = JSON.parse(JSON.stringify(ctx.getParameter({ name: 'custscript_ss_mass_inv_email_zee_set'})));
@@ -35,12 +35,17 @@ function(ui, email, runtime, search, record, http, log, redirect, task, format, 
         // var selectedZeeSet = [779884] // TEST
         // var taskIdSet = 272834; // TEST - NSW
         // var totalInvCount = 2; // 2 Invoices
-        var user_email = ctx.getParameter({ name: 'custpage_mass_inv_email_user_email'});
-        
+        var user_email = ctx.getParameter({ name: 'custscript_ss_mass_inv_email_user_email'});
+
         log.debug({
-            title: 'Executed Order 66',
+            title: 'Executed Order 66: ZEE',
             details: selectedZeeSet
         });
+        log.debug({
+            title: 'Executed Order 66: TASK',
+            details: taskIdSet
+        });
+
         /**
          *  Work Flow:
          *  // Send Email
@@ -48,25 +53,45 @@ function(ui, email, runtime, search, record, http, log, redirect, task, format, 
             // Once Completed List, Delete All Records.
          */
         // Make Result Set Bigger.
-        var main_index = 0;
+        var main_index = parseInt(ctx.getParameter({ name: 'custscript_ss_mass_inv_email_main_index'}))
+        if (isNullorEmpty(main_index) || isNaN(main_index)){
+            main_index = 0;
+        }   
+        log.debug({
+            title: 'Main Index: Ready',
+            details: main_index
+        });
+        var invoiceSet = JSON.parse(JSON.stringify({ name: 'custscript_ss_mass_inv_email_inv_set'}));
+        if (invoiceSet.length > 1){
+            invoiceSet = invoiceSet.split("\u0005") // Remove NetSuite Random Space Thingo.
+        } else {
+            invoiceSet = [];
+        }
+        log.debug({
+            title: 'Invoice Set: Ready',
+            details: invoiceSet
+        });
+        
         var zeeResultSet = [];
 
         // Delete List Record All.
         deleteSentList();
-        log.debug({
-            title: 'End Scheduled Script',
-        });
 
         // Search
         var zeeSearch = search.load({ type: 'invoice', id: 'customsearch_mass_inv_email_list' });
         if (!isNullorEmpty(selectedZeeSet)){
-            // log.debug({
-            //     title: 'Type Of',
-            //     details: typeof selectedZeeSet
-            // });
-            if (selectedZeeSet.length > 1){
-                selectedZeeSet = selectedZeeSet.split("\u0005") // Remove NetSuite Random Space Thingo.
+            log.debug({
+                title: 'Type Of',
+                details: typeof selectedZeeSet
+            });
+            if (main_index == 0){
+                if (selectedZeeSet.length > 1){
+                    selectedZeeSet = selectedZeeSet.split("\u0005") // Remove NetSuite Random Space Thingo.
+                }
+            } else {
+                selectedZeeSet = JSON.parse(selectedZeeSet)
             }
+            
             zeeSearch.filters.push(search.createFilter({
                 name: 'partner',
                 operator: search.Operator.ANYOF,
@@ -78,86 +103,214 @@ function(ui, email, runtime, search, record, http, log, redirect, task, format, 
                 values: null
             }));
         }
-        var zeeSearchRes = zeeSearch.run(); // Search Result
-        var zeeResLength = zeeSearch.runPaged().count;
-        log.debug({
-            title: 'Search Length',
-            details: zeeResLength
-        });
-        // for (var main_index = 0; main_index < 10000; main_index += 1000) {
-        //     zeeResultSet.push(zeeSearchRes.getRange({ start: main_index, end: main_index + 999 }));
-        // }
-        var index = 0;
-        zeeSearchRes.each(function(res){
-            // Customer Details
-            var internalid = res.getValue({ name: "internalid", join: 'customer' });
-            var entityid = res.getValue({ name: "entityid", join: 'customer' });
-            var companyname = res.getValue({ name: 'companyname', join: 'customer'  });
-            var email_address = res.getValue({ name: 'email', join: 'customer'  });
-            var cc_email = res.getValue({ name: 'custentity_accounts_cc_email', join: 'customer' });
-            cc_email = cc_email.split(',');
-            var cc_address = [];
-            if (cc_email.length >= 2){
-                cc_email.forEach(function(el){
-                    cc_address.push(el);
-                });
-            } else {
-                cc_address.push(cc_email);
-            }
-
-            // Invoice Details
-            var inv_id = res.getValue({ name: 'internalid' });
-            var inv_type = res.getText({ name: 'custbody_inv_type' });
-            var tot_am = '$' + res.getValue({ name: 'amount' });
-            if (isNullorEmpty(inv_type)) {
-                inv_type = 'Service';
-            }
-            var doc_num = res.getValue({ name: 'tranid' });
-            var days_open = res.getValue({ name: 'daysopen' });
-
-            // Create Object
-            createSentList(inv_id, doc_num, entityid, companyname, inv_type, tot_am, days_open);
-
-            // Save Invoices - Secondly
-            var attachments = [];
-            var invFile = getInvoiceFiles(inv_id);
-            attachments.push(invFile);
+        try {
+            var zeeSearchRes = zeeSearch.run(); // Search Result
+            var zeeResLength = zeeSearch.runPaged().count;
             log.debug({
-                title: 'Get Invoice ID Set Files',
-                details: invFile // TEST NSW Cust 2 Invoice 3449875 - Amount = $2.20;
+                title: 'Search Length',
+                details: zeeResLength
             });
+            for (var data_index = main_index; data_index < zeeResLength; data_index += 1000) {
+                zeeResultSet.push(zeeSearchRes.getRange({ start: data_index, end: data_index + 999 }));
+            }
+            var index = 0;
+            for (var i = 0; i < zeeResultSet.length; i++){
+                zeeResultSet[i].forEach(function(res){
+                    var usageLimit = ctx.getRemainingUsage();
+                    log.debug({
+                        title: 'usageLimit',
+                        details: usageLimit
+                    });
+                    if (usageLimit < 200) { // || index == 5
+                        params = {
+                            custscript_ss_mass_inv_email_task_set: taskIdSet,
+                            custscript_ss_mass_inv_email_zee_set: selectedZeeSet,
+                            custscript_ss_mass_inv_email_main_index: main_index + index,
+                            custscript_ss_mass_inv_email_tot_num_inv: totalInvCount,
+                            custscript_ss_mass_inv_email_user_email: user_email,
+                            custscript_ss_mass_inv_email_inv_set: invoiceSet,
+                        };
+                        var reschedule = task.create({
+                            taskType: task.TaskType.SCHEDULED_SCRIPT,
+                            scriptId: 'customscript_ss_mass_inv_email',
+                            deploymentId: 'customdeploy_ss_mass_inv_email',
+                            params: params
+                        });
+                        var reschedule_id = reschedule.submit();
+                        log.error({
+                            title: 'Attempting: Rescheduling Script',
+                            details: reschedule
+                        });
+                        return false;
+                    } else {
+                        log.debug({
+                            title: 'Index',
+                            details: index
+                        });
+                        var internalid = res.getValue({ name: "internalid", join: 'customer' });
+                        if (invoiceSet.indexOf(internalid) == -1){
+                            invoiceSet.push(internalid);
 
-            // Set Invoice to Emailed and Date
-            setInvoiceData(inv_id);
+                            // Customer Details 
+                            var entityid = res.getValue({ name: "entityid", join: 'customer' });
+                            var companyname = res.getValue({ name: 'companyname', join: 'customer'  });
+                            var email_address = res.getValue({ name: 'email', join: 'customer'  });
+                            var cc_email = res.getValue({ name: 'custentity_accounts_cc_email', join: 'customer' });
+                            cc_email = cc_email.split(',');
+                            var cc_address = [];
+                            if (cc_email.length >= 2){
+                                cc_email.forEach(function(el){
+                                    cc_address.push(el);
+                                });
+                            } else {
+                                cc_address.push(cc_email);
+                            }
 
-            //Send Email
-            sendEmail(internalid, companyname, email_address, attachments, doc_num, user_email, cc_address); 
+                            // Invoice Details
+                            var inv_id = res.getValue({ name: 'internalid' });
+                            var inv_type = res.getText({ name: 'custbody_inv_type' });
+                            var tot_am = '$' + res.getValue({ name: 'amount' });
+                            if (isNullorEmpty(inv_type)) {
+                                inv_type = 'Service';
+                            }
+                            var doc_num = res.getValue({ name: 'tranid' });
+                            var days_open = res.getValue({ name: 'daysopen' });
 
-            index++;
-            return true;
+                            var zee_name = res.getText({ name: 'partner' });
+
+                            // Create Object
+                            createSentList(inv_id, doc_num, entityid, companyname, inv_type, tot_am, days_open, zee_name);
+
+                            // Save Invoices - Secondly
+                            var attachments = [];
+                            var invFile = getInvoiceFiles(inv_id);
+                            attachments.push(invFile);
+
+                            //Send Email
+                            sendEmail(internalid, companyname, email_address, attachments, doc_num, user_email, cc_address); 
+
+                            // Set Invoice to Emailed and Date | After Emailed.
+                            setInvoiceData(inv_id);
+
+                            index++;
+                            return true;
+                        }
+                        
+                    }
+                })
+            }  
+        } catch (error) {
+            log.error({
+                title: 'Search Error?',
+                details: error
+            });
+            email.send({
+                author: 35031, // Accounts: 35031 | Customer Service: 112209
+                body: 'Error on Mass Invoice Email' + error, // Get Email Template
+                subject: 'Mass Invoice Email',
+                recipients: ['anesu.chakaingesu@mailplus.com.au'], // 
+            });
+        }
+
+        // Set Task as Completed;
+        if (taskIdSet.length > 1){
+            taskIdSet = taskIdSet.split("\u0005") // Remove NetSuite Random Space Thingo.
+        }
+        taskIdSet.forEach(function(taskId){
+            var taskRec = record.load({ type: 'task', id: taskId});
+            taskRec.setValue({ fieldId: 'status', value: "COMPLETE" }) // Set to Completed;
+            taskRec.save();
         });
+
+        log.debug({
+            title: 'END SCRIPT'
+        })
+
+        // Old Code
+        // zeeSearchRes.each(function(res){
+        //     // Customer Details
+        //     var internalid = res.getValue({ name: "internalid", join: 'customer' });
+        //     var entityid = res.getValue({ name: "entityid", join: 'customer' });
+        //     var companyname = res.getValue({ name: 'companyname', join: 'customer'  });
+        //     var email_address = res.getValue({ name: 'email', join: 'customer'  });
+        //     var cc_email = res.getValue({ name: 'custentity_accounts_cc_email', join: 'customer' });
+        //     cc_email = cc_email.split(',');
+        //     var cc_address = [];
+        //     if (cc_email.length >= 2){
+        //         cc_email.forEach(function(el){
+        //             cc_address.push(el);
+        //         });
+        //     } else {
+        //         cc_address.push(cc_email);
+        //     }
+
+        //     // Invoice Details
+        //     var inv_id = res.getValue({ name: 'internalid' });
+        //     var inv_type = res.getText({ name: 'custbody_inv_type' });
+        //     var tot_am = '$' + res.getValue({ name: 'amount' });
+        //     if (isNullorEmpty(inv_type)) {
+        //         inv_type = 'Service';
+        //     }
+        //     var doc_num = res.getValue({ name: 'tranid' });
+        //     var days_open = res.getValue({ name: 'daysopen' });
+        //     var zee_name = res.getValue({ name: 'partner' })
+
+        //     // Create Object
+        //     createSentList(inv_id, doc_num, entityid, companyname, inv_type, tot_am, days_open, zee_name);
+
+        //     // Save Invoices - Secondly
+        //     var attachments = [];
+        //     var invFile = getInvoiceFiles(inv_id);
+        //     attachments.push(invFile);
+        //     log.debug({
+        //         title: 'Get Invoice ID Set Files',
+        //         details: invFile // TEST NSW Cust 2 Invoice 3449875 - Amount = $2.20;
+        //     });
+
+        //     //Send Email
+        //     sendEmail(internalid, companyname, email_address, attachments, doc_num, user_email, cc_address); 
+
+        //     // Set Invoice to Emailed and Date | After Emailed.
+        //     setInvoiceData(inv_id);
+
+        //     index++;
+        //     return true;
+        // });
     }
 
     function sendEmail(custSet, companyname, email_address, attachments, invoice_number, user_email, cc_address){
-        log.debug({
-            title: 'Email Address',
-            details: email_address
-        })
+        // log.debug({
+        //     title: 'Email Address',
+        //     details: email_address
+        // })
         var email_template = emailTemplate();
-        email.send({
-            author: 35031, // Accounts: 35031 | Customer Service: 112209
-            body: email_template, // Get Email Template
-            subject: 'MailPlus Invoice: ' + invoice_number,
-            recipients: [email_address], //
-            cc: [cc_address],
-            attachments: attachments,
-            relatedRecords:{
-                entityId: custSet // Add Email Reminder Notification as Message Under Customer
-            }
-        });
+        if (!isNullorEmpty(cc_address)){ // CC Field Does
+            email.send({
+                author: 35031, // Accounts: 35031 | Customer Service: 112209
+                body: email_template, // Get Email Template
+                subject: 'MailPlus Invoice: ' + invoice_number,
+                recipients: [email_address], // 'anesu.chakaingesu@mailplus.com.au' | 
+                cc: [cc_address], // 
+                attachments: attachments,
+                relatedRecords:{
+                    entityId: custSet // Add Email Reminder Notification as Message Under Customer
+                }
+            });
+        } else { // CC Field Does Not Exist
+            email.send({
+                author: 35031, // Accounts: 35031 | Customer Service: 112209
+                body: email_template, // Get Email Template
+                subject: 'MailPlus Invoice: ' + invoice_number,
+                recipients: [email_address], // 'anesu.chakaingesu@mailplus.com.au'
+                attachments: attachments,
+                relatedRecords:{
+                    entityId: custSet // Add Email Reminder Notification as Message Under Customer
+                }
+            });
+        }
         log.debug({
             title: 'Send Out Emails: Attachments and Data',
-            details: custSet + companyname + email_address + attachments
+            details: custSet + ' ' +  companyname + ' ' + email_address + ' ' + attachments
         })
     }
 
@@ -192,19 +345,20 @@ function(ui, email, runtime, search, record, http, log, redirect, task, format, 
             customRecord: null
         });
         var html_body = emailMerger.body;
-        log.debug({
-            title: 'Email template',
-            details: html_body
-        })
+        // log.debug({
+        //     title: 'Email template',
+        //     details: html_body
+        // })
         return html_body;
     }
 
-    function createSentList(inv_id, doc_num, entityid, companyname, inv_type, tot_am, days_open) {
+    function createSentList(inv_id, doc_num, entityid, companyname, inv_type, tot_am, days_open, zee_name) {
         var sentListRec = record.create({
             type: 'customrecord_mass_inv_email_list',
             isDynamic: true,
         });
         sentListRec.setValue({ fieldId: 'name' , value: inv_id });
+        sentListRec.setValue({ fieldId: 'custrecord_mass_inv_email_zee_name' , value: zee_name}); //
         sentListRec.setValue({ fieldId: 'custrecord_mass_inv_email_doc_num' , value: doc_num});
         sentListRec.setValue({ fieldId: 'custrecord_mass_inv_email_entityid' , value: entityid});
         sentListRec.setValue({ fieldId: 'custrecord_mass_inv_email_companyname' , value: companyname});

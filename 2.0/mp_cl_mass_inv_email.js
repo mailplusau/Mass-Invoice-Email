@@ -49,7 +49,6 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
      * On page initialisation
      */
     function pageInit() {
-        /** IF */
         // Background-Colors
         $("#NS_MENU_ID0-item0").css("background-color", "#CFE0CE");
         $("#NS_MENU_ID0-item0 a").css("background-color", "#CFE0CE");
@@ -57,6 +56,8 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
 
         // Hide/UnHide Elements
         $('.loading_section').hide();
+        $('#btn-uncheck-all').removeClass('hide') 
+        $('#btn-check-all').removeClass('hide') 
         $('#submit').removeClass('hide');
 
         // // Hide Netsuite Submit Button
@@ -64,112 +65,147 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
         $('#submitter').hide();
         $('#tbl_submitter').hide();
 
-        loadZeeList();
-
-        var dataTable = $("#data_preview").DataTable({
-            data: dataSet,
-            // pageLength: 100,
-            // autoWidth: false,
-            order: [2, 'asc'], // Company Name
-            columns: [ 
-                { title: 'Selector' },// 0
-                { title: 'Franchisee ID' },// 1
-                { title: "Date Submitted" }, // 2
-                { title: "Name" }, // 3
-                { title: "State" }, // 4
-                { title: 'Assigned To' },
-                { title: 'Title' }, // 5
-                { title: 'No. of Invoices' }, // 6
-            ],
-            
-            columnDefs: [
-            ],
-            rowCallback: function(row, data) {
-            //  if ($(row).hasClass('odd')) {
-            //      $(row).css('background-color', 'rgba(250, 250, 210, 1)'); // LightGoldenRodYellow
-            //  } else {
-            //      $(row).css('background-color', 'rgba(255, 255, 240, 1)'); // Ivory
-            //  }
-            //  if (!isNullorEmpty(data[7])){ // Date Emailed
-            //      if ($(row).hasClass('odd')) {
-            //          $(row).css('background-color', 'rgba(51, 204, 255, 0.65)'); // Lighter Blue / Baby Blue
-            //      } else {
-            //          $(row).css('background-color', 'rgba(78, 175, 214, 0.65)'); // Darker Blue
-            //      }
-            //  }
-            }
-        });
-
-        // Set Checkbox Checked all
-        $(".form-check-input").prop("checked", true);
-        $(".form-check-input").parent().parent().css('background-color', 'rgba(144, 238, 144, 0.75)');
-
-        // Toggle Customer In List
-        $(document).on('click', '#zee-include', function(){
-            var zeeId = $(this).attr('zee-id');
-            var taskId = $(this).attr('task-id');
-            var invCount = $(this).attr('inv-count');
-
-            if ($(this).hasClass('active')){ // Active
-                $(this).parent().parent().css('background-color', ''); // Blank
-                $(this).removeClass('active')
-
-                var zeeIndex = zeeSet.indexOf(zeeId);
-                var taskIndex = taskIdSet.indexOf(taskId);
-                if (zeeIndex > -1){
-                    totalCount = parseInt(totalCount) - parseInt(invCount);
-                    zeeSet.splice(zeeIndex, 1);
-                    taskIdSet.splice(taskIndex, 1);
-                }   
-            } else { // Not Active
-                $(this).parent().parent().css('background-color', 'rgba(144, 238, 144, 0.75)'); // Green
-                $(this).addClass('active')
-
-                if (zeeSet.indexOf(zeeId) == -1){
-                    totalCount = parseInt(totalCount) + parseInt(invCount)
-                    zeeSet.push(zeeId);
-                    taskIdSet.push(taskId);
-                }
-            }
-            console.log('Franchisee ID Set')
-            console.log(zeeSet)
-            console.log('Task ID Set')
-            console.log(taskIdSet)
-            console.log('Total Invoice Count')
-            console.log(totalCount)
-        });
-
-        $('#submit').click(function(){
-            console.log('On Click : Cust Length ' + zeeSet.length);
-            if (zeeSet.length > 0) {
-                if (totalCount > 0) { 
-                    // Trigger Submit
-                    $('#submitter').trigger('click');
-                } else {
-                    alert('WARNING: No. of Invoices is 0')
-                }
-            } else {
-                alert('WARNING: No Franchisees Selected');
-            }
-        })
-
-        /** ELSE */
         var get_Method = currRec.getValue({ fieldId: 'custpage_mass_inv_email_method' });
-        if (get_Method == 'POST'){
+        /** IF */
+        if (get_Method != 'POST'){
+            loadZeeList();
+
+            var dataTable = $("#data_preview").DataTable({
+                data: dataSet,
+                pageLength: 100,
+                // autoWidth: false,
+                order: [[2, 'asc'], [3, 'desc']], // Date Created | Name
+                columns: [ 
+                    { title: 'Selector' },// 0
+                    { title: 'Franchisee ID' },// 1
+                    { title: "Date Submitted" }, // 2
+                    { title: "Name" }, // 3
+                    { title: "State" }, // 4
+                    { title: 'Assigned To' }, //5
+                    { title: 'Title' }, // 6
+                    { title: 'No. of Invoices' }, // 7
+                    { title: 'Task ID' }, //8
+                ],
+                columnDefs: [
+                    { 
+                        targets: [8],
+                        visible: false
+                    }
+                ],
+            });
+
+            // Set Checkbox Checked all
+            $(".form-check-input").prop("checked", true);
+            $(".form-check-input").parent().parent().css('background-color', 'rgba(144, 238, 144, 0.75)');
+
+            // Toggle Customer In List
+            $(document).on('click', '#zee-include', function(){
+                var zeeId = $(this).attr('zee-id');
+                var taskId = $(this).attr('task-id');
+                var invCount = $(this).attr('inv-count');
+
+                if ($(this).hasClass('active')){ // Active
+                    $(this).parent().parent().css('background-color', ''); // Blank
+                    $(this).removeClass('active')
+
+                    var zeeIndex = zeeSet.indexOf(zeeId);
+                    var taskIndex = taskIdSet.indexOf(taskId);
+                    if (zeeIndex > -1){
+                        totalCount = parseInt(totalCount) - parseInt(invCount);
+                        zeeSet.splice(zeeIndex, 1);
+                        taskIdSet.splice(taskIndex, 1);
+                    }   
+                } else { // Not Active
+                    $(this).parent().parent().css('background-color', 'rgba(144, 238, 144, 0.75)'); // Green
+                    $(this).addClass('active')
+
+                    if (zeeSet.indexOf(zeeId) == -1){
+                        totalCount = parseInt(totalCount) + parseInt(invCount)
+                        zeeSet.push(zeeId);
+                        taskIdSet.push(taskId);
+                    }
+                }
+                console.log('Franchisee ID Set')
+                console.log(zeeSet)
+                console.log('Task ID Set')
+                console.log(taskIdSet)
+                console.log('Total Invoice Count')
+                console.log(totalCount)
+            });
+
+            // Handle click on "Check All" button
+            $('#btn-check-all').on('click', function() {
+                console.log('Select All');
+                dataTable.page.len(-1).draw();
+                // Reset all Data
+                zeeSet = [];
+                taskIdSet = [];
+                totalCount = 0;
+                dataTable.rows().every(function(){
+                    var index = this.data();
+                    var zeeId = index[1]; // Franchisee ID
+                    var taskId = index[8];
+                    var invCount = parseInt((((index[7]).split('>')[1]).split('<')[0])); // Invoic Amount Count
+                    zeeSet.push(zeeId);
+                    taskIdSet.push(taskId)
+                    totalCount += parseInt(invCount);
+                });
+                $('.form-check-input').prop('checked', true);
+                $('.form-check-input').parent().parent().css('background-color', 'rgba(144, 238, 144, 0.75)'); // Green
+                $('.form-check-input').addClass('active')
+                dataTable.page.len(100).draw();
+
+                console.log('Franchisee ID Set')
+                console.log(zeeSet)
+                console.log('Task ID Set')
+                console.log(taskIdSet)
+                console.log('Total Invoice Count')
+                console.log(totalCount)
+            });
+            // Handle click on "Un-Check All" button
+            $('#btn-uncheck-all').on('click', function() {
+                console.log('Un-Select All');
+                dataTable.page.len(-1).draw();
+                // Reset all Data
+                zeeSet = [];
+                taskIdSet = [];
+                totalCount = 0;
+                $('.form-check-input').prop('checked', false);
+                $('.form-check-input').parent().parent().css('background-color', '');
+                $('.form-check-input').removeClass('active')
+                dataTable.page.len(100).draw();
+            });
+
+            $('#submit').click(function(){
+                console.log('On Click : Cust Length ' + zeeSet.length);
+                if (zeeSet.length > 0) {
+                    if (totalCount > 0) { 
+                        // Trigger Submit
+                        $('#submitter').trigger('click');
+                    } else {
+                        alert('WARNING: No. of Invoices is 0')
+                    }
+                } else {
+                    alert('WARNING: No Franchisees Selected');
+                }
+            });
+        } else if (get_Method == 'POST'){
+            /** ELSE */
             totalCount = parseInt(currRec.getValue({ fieldId: 'custpage_mass_inv_email_tot_num_inv' }));
             console.log('Total Count: ' + totalCount);
             // if (!isNullorEmpty(totalCount) && totalCount.length > 0) {
-                progressBar = setInterval(updateProgressBar, 1000, totalCount);
+                progressBar = setInterval(updateProgressBar, 2500, totalCount);
             // }
 
             /*  Progress Bar Info*/
             var dataTable = $("#data_preview2").DataTable({
                 data: dataSet2,
-                pageLength: 100,
+                pageLength: 1000,
                 // autoWidth: false,
                 // order: [2, 'asc'], // Company Name
                 columns: [ 
                     { title: 'Emailed?' },// 0
+                    { title: 'Franchisee' }, //zee_name, //1
                     { title: 'Document Number' },// 1
                     { title: 'Customer ID' }, // 2
                     { title: 'Customer Name' }, // 3
@@ -180,8 +216,6 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
             });
             // Toggle Customer In List
             $(document).on('click', '.back', function(){
-                var inv_id = $(this).val();
-
                 var upload_url = baseURL + url.resolveScript({
                     deploymentId: "customdeploy_sl_mass_inv_email",
                     scriptId: "customscript_sl_mass_inv_email",
@@ -192,30 +226,42 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
     }
 
     function loadZeeList(){
+        var openInvResSet = [];
         var openInvoiceList = [];
         var openInvSearch = search.load({ type: 'invoice', id: 'customsearch_mass_inv_email_list' });
-        openInvSearch.run().each(function(res){
-            var inv_id = res.getValue('internalid');
-            var zee_id = res.getValue({ name: 'partner' });
-            openInvoiceList.push({invid: inv_id, zeeid: zee_id});
-            return true;
-        });
+        for (var invIndex = 0; invIndex < 10000; invIndex += 1000) {
+            openInvResSet.push(openInvSearch.run().getRange({ start: invIndex, end: invIndex + 999 }));
+        }
+        for (var i = 0; i < openInvResSet.length; i++) {
+            openInvResSet[i].forEach(function(res){
+                // var inv_id = res.getValue({ name: 'internalid' });
+                var zee_id = res.getValue({ name: 'partner' });
+                // openInvoiceList.push({invid: inv_id, zeeid: zee_id});
+                openInvoiceList.push({zeeid: zee_id});
+                return true;
+            });
+        }
+        console.log(openInvoiceList);
 
         var searchZeeList = search.load({ type: 'task', id: 'customsearch_fr_mthly_inv_complete_3_2' })
         // searchZeeList.filters.push
         searchZeeList.run().each(function(res){
+            var zee_id = res.getValue({ name: 'assigned' });
+            var nb_inv_filter = openInvoiceList.filter(function(el){ if (zee_id == el.zeeid){return el} });
+            var nb_invoices = nb_inv_filter.length;
+            
+            if (nb_invoices == 0){
+                return true;
+            }
+
             var task_id = res.getValue('internalid');
             var date_created = res.getValue({ name: 'createddate' });
-            var zee_id = res.getValue({ name: 'assigned' });
             var title = res.getValue({ name: 'title' });
             var assigned_to = res.getText({ name: 'custevent2' })
             
             var zee = record.load({ type: 'partner', id: zee_id });
             var zee_name = zee.getValue({ fieldId: 'companyname' })
             var zee_state = zee.getText({ fieldId: 'location' })
-
-            var nb_inv_filter = openInvoiceList.filter(function(el){ if (zee_id == el.zeeid){return el} });
-            var nb_invoices = nb_inv_filter.length;
 
             var params = {
                 zeeid: parseInt(zee_id)
@@ -233,6 +279,7 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
                 assigned_to,
                 title,
                 inline_link,
+                task_id, // 8
             ]);
 
             // Auto Select All Tasks.
@@ -253,13 +300,6 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
         currRec.setValue({ fieldId: 'custpage_mass_inv_email_tot_num_inv', value: totalCount }); //
         currRec.setValue({ fieldId: 'custpage_mass_inv_email_user_email', value: user_email });
 
-        // Set Task as Completed;
-        taskIdSet.forEach(function(taskId){
-            var taskRec = record.load({ type: 'task', id: taskId});
-            taskRec.setValue({ fieldId: 'status', value: "COMPLETE" }) // Set to Completed;
-            taskRec.save();
-        })
-
         return true;
     }
 
@@ -269,15 +309,15 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
     */
     function updateProgressBar(totalCount) {
         console.log("updateProgressBar is running");
-        // try {
+        console.log("Units Remaining: " + ctx.getRemainingUsage());
+        try {
             nb_emailed = lengthSentList();
 
             console.log("Nb records moves : ", nb_emailed);
             if (nb_emailed == totalCount) {
                 clearInterval(progressBar);
                 $('#progress-records').attr('class', 'progress-bar progress-bar-success');
-
-                setTimeout(redirect, 5000);
+                setTimeout(redirect, 15000); // Redirect after 60 Seconds
             }
 
             var width = parseInt((nb_emailed / totalCount) * 100);
@@ -286,26 +326,24 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
             $('#progress-records').attr('style', 'width:' + width + '%');
             $('#progress-records').text('Total Number of Invoices Emailed : ' + nb_emailed + ' / ' + totalCount);
             console.log("width : ", width);
-        // } catch (e) {
-        //     if (e instanceof nlobjError) {
-        //         if (e.getCode() == "SCRIPT_EXECUTION_USAGE_LIMIT_EXCEEDED") {
-        //             var params = {
-        //                 custscript_ss_mass_inv_email_zee_set: zeeSet,
-        //                 custscript_ss_mass_inv_email_task_set: taskIdSet,
-        //                 custscript_ss_mass_inv_email_tot_num_inv: totalInvCount,
-        //             }
-        //             var params_progress = {
-        //                 custparam_selector_id: selector_id,
-        //                 custparam_selector_type: selector_type,
-        //                 custparam_result_set_length: totalInvCount,
-        //                 custparam_timestamp: timestamp
-        //             };
-        //             params_progress = JSON.stringify(params_progress);
-        //             var reload_url = baseURL + nlapiResolveURL('suitelet', 'customscript_sl_reallocated_barcodes', 'customdeploy_sl_reallocated_barcodes') + '&custparam_params=' + params_progress;
-        //             window.open(reload_url, "_self");
-        //         }
-        //     }
-        // }
+        } catch (e) {
+            if (e instanceof nlobjError) {
+                if (e.getCode() == "SCRIPT_EXECUTION_USAGE_LIMIT_EXCEEDED") {
+                    var params_progress = {
+                        custpage_mass_inv_email_tot_num_inv: resultSetLength,
+                        custpage_mass_inv_email_zee_set: null,
+                    };
+                    params_progress = JSON.stringify(params_progress);
+                    var reload_url = baseURL + url.resolveScript({
+                        deploymentId: "customdeploy_sl_mass_inv_email",
+                        scriptId: "customscript_sl_mass_inv_email",
+                    }) + '&custparam_params=' + params_progress;
+                    window.open(reload_url, "_self");
+                    
+                }
+            }
+        }
+
     }
 
     function lengthSentList(){
@@ -318,6 +356,7 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
         result.each(function(res){
             var internalid = res.getValue({ name: 'internalid' });
 
+            var zee_name = res.getValue({ name: 'custrecord_mass_inv_email_zee_name' }); // NEW
             var doc_num = res.getValue({ name: 'custrecord_mass_inv_email_doc_num' })
             var entityid = res.getValue({ name: 'custrecord_mass_inv_email_entityid' })
             var companyname = res.getValue({ name: 'custrecord_mass_inv_email_companyname' })
@@ -327,6 +366,7 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
             if (listID.indexOf(internalid) == -1){
                 dataSet2.push([
                     'YES', //0
+                    zee_name, //1
                     doc_num, //1
                     entityid, // 2
                     companyname, // 3
@@ -350,10 +390,11 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
     }
 
     function redirect(){
-        redirect.toSuitelet({
-            scriptId: 'customscript_sl_mass_inv_email',
-            deploymentId: 'customdeploy_sl_mass_inv_email'
+        var upload_url = baseURL + url.resolveScript({
+            deploymentId: "customdeploy_sl_mass_inv_email",
+            scriptId: "customscript_sl_mass_inv_email",
         });
+        window.location.href = upload_url;
     }
 
     /**

@@ -256,7 +256,7 @@
         var inlineQty = '<style>table#data_preview {font-size: 12px;text-align: center;border: none; background-color: white;}.dataTables_wrapper {font-size: 14px;}table#data_preview th{text-align: center;} .bolded{font-weight: bold;} </style>';
         
         // CSV Export
-        inlineQty += '<button class="csv-export btn btn-sm btn-info" type="button" id="csv-export" style="background-color: #FBEA51; color: #103D39;">CSV Export</button>'
+        inlineQty += '<button class="csv-export btn btn-sm btn-info hide" type="button" id="csv-export" style="background-color: #FBEA51; color: #103D39;">CSV Export</button>'
 
         // inlineQty += '<div style="width: 75%;">'
         inlineQty += '<table id="data_preview" class="table table-responsive table-striped customer tablesorter">'; // style="width: 75%;"

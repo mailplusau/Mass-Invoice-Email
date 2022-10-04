@@ -55,6 +55,7 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
         $('.loading_section').hide();
         $('#submit').removeClass('hide');
         $('.back').removeClass('hide');
+        $('.csv-export').removeClass('hide');
 
         // // Hide Netsuite Submit Button
         $('#submitter').css("background-color", "#CFE0CE");
@@ -68,6 +69,10 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
         var dataTable = $("#data_preview").DataTable({
             data: dataSet,
             pageLength: 100,
+            // "bPaginate": false,
+            "bLengthChange": false,
+            "bFilter": true,
+            // "bInfo": false,
             // autoWidth: false,
             order: [3, 'asc'], // Company Name
             columns: [ 
@@ -198,21 +203,23 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
      * @param {Array} csvSet The `csvSet` created in `loadDatatable()`.
      */
     function saveCsv(csvSet) {
-        var headers = ["Date", "Document Number", "Customer ID", "Customer Name", 'Invoice Type', 'Total Amount', 'Days Open']
-        headers = headers.join(';'); // .join(', ')
-        var csv = headers + "\n";
-        csvSet.forEach(function(row) {
-            row = row.join(';');
-            csv += row;
-            csv += "\n";
-        });
+        if (csvSet.length > 0) {
+            var headers = ["Date", "Document Number", "Customer ID", "Customer Name", 'Invoice Type', 'Total Amount', 'Days Open']
+            headers = headers.join(';'); // .join(', ')
+            var csv = headers + "\n";
+            csvSet.forEach(function(row) {
+                row = row.join(';');
+                csv += row;
+                csv += "\n";
+            });
 
-        var val1 = currentRecord.get();
-        val1.setValue({
-            fieldId: 'custpage_table_csv',
-            value: csv
-        });
-
+            var val1 = currentRecord.get();
+            val1.setValue({
+                fieldId: 'custpage_table_csv',
+                value: csv
+            });
+        }
+        
         return true;
     }
 
@@ -226,19 +233,23 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
         var csv = val1.getValue({
             fieldId: 'custpage_table_csv',
         });
-        var a = document.createElement("a");
-        document.body.appendChild(a);
-        a.style = "display: none";
-        var content_type = 'text/csv';
-        var csvFile = new Blob([csv], {
-            type: content_type
-        });
-        var url = window.URL.createObjectURL(csvFile);
-        var filename = 'Mass Invoice Email - ' + zee_name + ' - ' + today_date + '.csv';
-        a.href = url;
-        a.download = filename;
-        a.click();
-        window.URL.revokeObjectURL(url);
+        if (!isNullorEmpty(csv)) {
+            var a = document.createElement("a");
+            document.body.appendChild(a);
+            a.style = "display: none";
+            var content_type = 'text/csv';
+            var csvFile = new Blob([csv], {
+                type: content_type
+            });
+            var url = window.URL.createObjectURL(csvFile);
+            var filename = 'Mass Invoice Email - ' + zee_name + ' - ' + today_date + '.csv';
+            a.href = url;
+            a.download = filename;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        } else {
+            alert('CSV Export Failed. Table has Empty Data')
+        }
     }
 
     function saveRecord(context) {

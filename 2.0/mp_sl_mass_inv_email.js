@@ -186,27 +186,35 @@
             var totalInvCount = parseInt(params.custpage_mass_inv_email_tot_num_inv);
             var user_email = params.custpage_mass_inv_email_user_email
 
-            // CALL SCHEDULED SCRIPT
-            var params = {
-                custscript_ss_mass_inv_email_zee_set: zeeSet,
-                custscript_ss_mass_inv_email_task_set: taskIdSet,
-                custscript_ss_mass_inv_email_tot_num_inv: totalInvCount,
-                custscript_ss_mass_inv_email_user_email: user_email,
+
+            if (!isNullorEmpty(zeeSet)){
+                // CALL SCHEDULED SCRIPT
+                var params = {
+                    custscript_ss_mass_inv_email_zee_set: zeeSet,
+                    custscript_ss_mass_inv_email_task_set: taskIdSet,
+                    custscript_ss_mass_inv_email_tot_num_inv: totalInvCount,
+                    custscript_ss_mass_inv_email_user_email: user_email,
+                }
+                var scriptTask = task.create({
+                    taskType: task.TaskType.SCHEDULED_SCRIPT,
+                    scriptId: 'customscript_ss_mass_inv_email',
+                    deploymentId: 'customdeploy_ss_mass_inv_email',
+                    params: params
+                });
+                var ss_id = scriptTask.submit();
+                var myTaskStatus = task.checkStatus({
+                    taskId: ss_id
+                });
+                log.debug({
+                    title: 'Params',
+                    details: params
+                })
+                log.debug({
+                    title: 'Task Status',
+                    details: myTaskStatus
+                });
             }
-            var scriptTask = task.create({
-                taskType: task.TaskType.SCHEDULED_SCRIPT,
-                scriptId: 'customscript_ss_mass_inv_email',
-                deploymentId: 'customdeploy_ss_mass_inv_email',
-                params: params
-            });
-            var ss_id = scriptTask.submit();
-            var myTaskStatus = task.checkStatus({
-                taskId: ss_id
-            });
-            log.debug({
-                title: 'Task Status',
-                details: myTaskStatus
-            });
+            
 
             // Redirect
             // var params2 = {zeeid: zeeId}
@@ -241,9 +249,6 @@
             inlineHtml += '.nav > li > a, .nav > li > a:focus, .nav > li > a:hover { margin-left: 5px; margin-right: 5px; border: 2px solid #379E8F; color: #379E8F; }';
             inlineHtml += '</style>';
 
-            // Define alert window.
-            inlineHtml += '<div class="container" style="margin-top:14px;" hidden><div id="alert" class="alert alert-danger fade in"></div></div>';
-
             // Define information window.
             inlineHtml += '<div class="container" hidden><p id="info" class="alert alert-info"></p></div>';
             inlineHtml += '<div style="margin-top: -40px"><br/>';
@@ -251,6 +256,9 @@
             // Buttons
             // inlineHtml += '<button style="margin-left: 10px; margin-right: 5px; background-color: #FBEA51; color: #103D39; font-weight: 700; border-color: transparent; border-width: 2px; border-radius: 15px; height: 30px" type="button" id="new_agreement" onclick="">New Franchisee Agreement</button>';
             inlineHtml += '<h1 style="font-size: 25px; font-weight: 700; color: #103D39; text-align: center">Mass Invoice Email: Progress Info</h1>';
+
+            // Define alert window.
+            inlineHtml += '<div class="container" style="margin-top:14px;" hidden><div id="alert" class="alert alert-danger fade in">Do Not Refresh</div></div>';
 
             inlineHtml += goBack();
 
@@ -303,6 +311,9 @@
      */
     function dataTable() {
         var inlineQty = '<style>table#data_preview {font-size: 12px;text-align: center;border: none; background-color: white;}.dataTables_wrapper {font-size: 14px;}table#data_preview th{text-align: center;} .bolded{font-weight: bold;} </style>';
+        
+        inlineQty += '<button id="btn-check-all" class="btn btn-sm btn-info hide" type="button" style="background-color: #FBEA51; color: #103D39;">Select All Customers</button>'
+        inlineQty += '<button id="btn-uncheck-all" class="btn btn-sm btn-info hide" type="button" style="background-color: #FBEA51; color: #103D39;">Un-Select All Customers</button>'
         
         // inlineQty += '<div style="width: 75%;">'
         inlineQty += '<table id="data_preview" class="table table-responsive table-striped customer tablesorter">'; // style="width: 75%;"
