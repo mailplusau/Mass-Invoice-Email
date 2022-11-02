@@ -268,7 +268,7 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
             };
             params = JSON.stringify(params);
             var upload_url = baseURL + nlapiResolveURL('suitelet', 'customscript_sl_mass_inv_open_list', 'customdeploy_sl_mass_inv_open_list') + '&custparam_params=' + params; //encodeURIComponent(params);
-            var inline_link = '<a href=' + upload_url + '>' + nb_invoices + '</a>';        
+            var inline_link = '<a href=' + upload_url + ' target="_blank">' + nb_invoices + '</a>';        
 
             dataSet.push([
                 '<input class="form-check-input active" type="checkbox" zee-id="'+zee_id+'" inv-count="'+nb_invoices+'" task-id="'+task_id+'" id="zee-include">',
