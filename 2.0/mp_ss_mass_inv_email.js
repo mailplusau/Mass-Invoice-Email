@@ -25,8 +25,8 @@ function(ui, email, runtime, search, record, http, log, redirect, task, format, 
     today_date = dateISOToNetsuite(today_date);
     today_date = format.parse({ value: today_date, type: format.Type.DATE }); // Reformat Date
 
-    // var sent_invoices = [];
-    var sent_invoices = ["4131738"]
+    var sent_invoices = [];
+    // var sent_invoices = ["4131738"]
 
     function main() {
         /**
@@ -208,7 +208,7 @@ function(ui, email, runtime, search, record, http, log, redirect, task, format, 
                                 sendEmail(internalid, companyname, email_address, attachments, doc_num, user_email, cc_address); 
 
                                 // Set Invoice to Emailed and Date | After Emailed.
-                                // setInvoiceData(inv_id);
+                                setInvoiceData(inv_id);
                             } catch (e) {
                                 log.error({
                                     title: 'Send Email Error',
@@ -334,7 +334,7 @@ function(ui, email, runtime, search, record, http, log, redirect, task, format, 
             type: 'customrecord_mass_inv_email_list'
         });
         invRecEmailList.run().each(function(res){
-            // sent_invoices.push(res.getValue({ name: 'name' })); // populate list of invoices
+            sent_invoices.push(res.getValue({ name: 'name' })); // populate list of invoices
             if (main_index == 0){
                 record.delete({
                     type: 'customrecord_mass_inv_email_list',
