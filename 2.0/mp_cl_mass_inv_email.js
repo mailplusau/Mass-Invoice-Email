@@ -327,8 +327,9 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
             $('#progress-records').text('Total Number of Invoices Emailed : ' + nb_emailed + ' / ' + totalCount);
             console.log("width : ", width);
         } catch (e) {
-            if (e instanceof nlobjError) {
-                if (e.getCode() == "SCRIPT_EXECUTION_USAGE_LIMIT_EXCEEDED") {
+            // if (e instanceof nlobjError) {
+                // if (e.getCode() == "SCRIPT_EXECUTION_USAGE_LIMIT_EXCEEDED") {
+                if (e.name == 'SSS_USAGE_LIMIT_EXCEEDED') {
                     var params_progress = {
                         custpage_mass_inv_email_tot_num_inv: resultSetLength,
                         custpage_mass_inv_email_zee_set: null,
@@ -341,7 +342,7 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
                     window.open(reload_url, "_self");
                     
                 }
-            }
+            // }
         }
 
     }
