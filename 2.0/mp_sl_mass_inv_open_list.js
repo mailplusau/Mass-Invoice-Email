@@ -163,7 +163,7 @@
                 label: ' '
             });
 
-            form.clientScriptFileId = 5882583; // Sandbox:  | Prod: 5882583
+            form.clientScriptFileId = 5622065; // Sandbox: 5622065 | Prod: 5882583
 
             context.response.writePage(form);
         } else {
@@ -242,7 +242,7 @@
                 displayType: ui.FieldDisplayType.HIDDEN
             }).defaultValue = zee_id;
 
-            form.clientScriptFileId = 5882583; // Sandbox:  | Prod: 5882583
+            form.clientScriptFileId = 5622065; // Sandbox: 5622065 | Prod: 5882583
 
             context.response.writePage(form);
         }

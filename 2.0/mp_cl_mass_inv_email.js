@@ -194,7 +194,7 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
             totalCount = parseInt(currRec.getValue({ fieldId: 'custpage_mass_inv_email_tot_num_inv' }));
             console.log('Total Count: ' + totalCount);
             // if (!isNullorEmpty(totalCount) && totalCount.length > 0) {
-                progressBar = setInterval(updateProgressBar, 2500, totalCount);
+                progressBar = setInterval(updateProgressBar, 15000, totalCount); // Update every 15 seconds
             // }
 
             /*  Progress Bar Info*/
@@ -228,6 +228,7 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
     function loadZeeList(){
         var openInvResSet = [];
         var openInvoiceList = [];
+        // Get Complete List of Open Invoices to Match with Zee List
         var openInvSearch = search.load({ type: 'invoice', id: 'customsearch_mass_inv_email_list' });
         for (var invIndex = 0; invIndex < 10000; invIndex += 1000) {
             openInvResSet.push(openInvSearch.run().getRange({ start: invIndex, end: invIndex + 999 }));
@@ -243,6 +244,7 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
         }
         console.log(openInvoiceList);
 
+        // Search Pending Tasks.
         var searchZeeList = search.load({ type: 'task', id: 'customsearch_fr_mthly_inv_complete_3_2' })
         // searchZeeList.filters.push
         searchZeeList.run().each(function(res){
@@ -310,7 +312,7 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
     function updateProgressBar(totalCount) {
         console.log("updateProgressBar is running");
         console.log("Units Remaining: " + ctx.getRemainingUsage());
-        try {
+        if (parseInt(ctx.getRemainingUsage()) > 100) {
             nb_emailed = lengthSentList();
 
             console.log("Nb records moves : ", nb_emailed);
@@ -326,29 +328,23 @@ function (error, runtime, search, url, record, format, email, currentRecord) {
             $('#progress-records').attr('style', 'width:' + width + '%');
             $('#progress-records').text('Total Number of Invoices Emailed : ' + nb_emailed + ' / ' + totalCount);
             console.log("width : ", width);
-        } catch (e) {
-            // if (e instanceof nlobjError) {
-                // if (e.getCode() == "SCRIPT_EXECUTION_USAGE_LIMIT_EXCEEDED") {
-                if (e.name == 'SSS_USAGE_LIMIT_EXCEEDED') {
-                    var params_progress = {
-                        custpage_mass_inv_email_tot_num_inv: resultSetLength,
-                        custpage_mass_inv_email_zee_set: null,
-                    };
-                    params_progress = JSON.stringify(params_progress);
-                    var reload_url = baseURL + url.resolveScript({
-                        deploymentId: "customdeploy_sl_mass_inv_email",
-                        scriptId: "customscript_sl_mass_inv_email",
-                    }) + '&custparam_params=' + params_progress;
-                    window.open(reload_url, "_self");
-                    
-                }
+        } else {
+            // if (e.name == 'SSS_USAGE_LIMIT_EXCEEDED') {
+                var params_progress = {
+                    custpage_mass_inv_email_tot_num_inv: totalCount,
+                    custpage_mass_inv_email_zee_set: null,
+                };
+                params_progress = JSON.stringify(params_progress);
+                var reload_url = baseURL + url.resolveScript({
+                    deploymentId: "customdeploy_sl_mass_inv_email",
+                    scriptId: "customscript_sl_mass_inv_email",
+                }) + '&custparam_params=' + params_progress;
+                window.open(reload_url, "_self");
             // }
         }
-
     }
 
     function lengthSentList(){
-        
         var sea = search.load({
             id: 'customsearch_mass_inv_email_list_2',
             type: 'customrecord_mass_inv_email_list'

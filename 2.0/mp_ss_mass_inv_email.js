@@ -38,7 +38,7 @@ function(ui, email, runtime, search, record, http, log, redirect, task, format, 
 
         // Get Results
         var taskIdSet = JSON.parse(JSON.stringify(ctx.getParameter({ name: 'custscript_ss_mass_inv_email_task_set'})));
-        var totalInvCount = ctx.getParameter({ name: 'custscript_ss_mass_inv_email_tot_num_inv'})
+        var totalInvCount = parseInt(ctx.getParameter({ name: 'custscript_ss_mass_inv_email_tot_num_inv'}));
         var selectedZeeSet = new Array();
         selectedZeeSet = JSON.parse(JSON.stringify(ctx.getParameter({ name: 'custscript_ss_mass_inv_email_zee_set'})));
         var user_email = ctx.getParameter({ name: 'custscript_ss_mass_inv_email_user_email'});
@@ -102,43 +102,106 @@ function(ui, email, runtime, search, record, http, log, redirect, task, format, 
                 });
                 selectedZeeSet = JSON.parse(selectedZeeSet)
             }
-            if (selectedZeeSet.length > 0){ // Ensures that Only when the Zee List is populated, it will filter.
+            if (selectedZeeSet.length > 0){ // Ensures that Only when the Selected Zee List is populated, it will filter.
                 // Load Search
-                var zeeSearch = search.load({ type: 'invoice', id: 'customsearch_mass_inv_email_list' });
-                zeeSearch.filters.push(search.createFilter({
+                var invSearch = search.load({ type: 'invoice', id: 'customsearch_mass_inv_email_list' });
+                invSearch.filters.push(search.createFilter({
                     name: 'partner',
                     operator: search.Operator.ANYOF,
                     values: selectedZeeSet
                 }));
-                zeeSearch.filters.push(search.createFilter({
+                invSearch.filters.push(search.createFilter({
                     name: 'email',
                     operator: search.Operator.ISNOTEMPTY,
                     values: null
                 }));
-                zeeSearch.filters.push(search.createFilter({
-                    name: 'internalid',
-                    operator: search.Operator.NONEOF,
-                    values: sent_invoices
-                }));
-                var zeeSearchRes = zeeSearch.run(); // Search Result
-                var zeeResLength = zeeSearch.runPaged().count;
-                log.debug({
-                    title: 'Search Length',
-                    details: zeeResLength
-                });
-                var zeeResultSet = []; // Sudo Array Containing Complete Search Data
-                for (var data_index = main_index; data_index < zeeResLength; data_index += 1000) {
-                    zeeResultSet.push(zeeSearchRes.getRange({ start: data_index, end: data_index + 999 }));
+                if (sent_invoices != null && sent_invoices.length > 0){
+                    invSearch.filters.push(search.createFilter({
+                        name: 'internalid',
+                        operator: search.Operator.NONEOF,
+                        values: sent_invoices
+                    }));
                 }
+                var invSearchRes = invSearch.run(); // Search Result
+                // if (main_index == 0) { // Update Total Invoice Count on First Run.
+                    // totalInvCount = invSearch.runPaged().count;
+                    var invResLength = invSearch.runPaged().count;
+                // }
+                
+                // log.debug({
+                //     title: 'Search Length',
+                //     details: totalInvCount
+                // });
+                var invResultSet = []; // Sudo Array Containing Complete Search Data
+                for (var data_index = 0; data_index < invResLength; data_index += 1000) {
+                    invResultSet.push(invSearchRes.getRange({ start: data_index, end: data_index + 999 }));
+                }
+                log.debug({
+                    title: 'Search Result Set',
+                    details: invResultSet
+                });
+                // Loop Through Search Results and Log
+                var result_count = 0;
+                for (var i = 0; i < invResultSet.length; i++) {
+                    var invResult = invResultSet[i];
+                    log.debug({
+                        title: 'Search Result Set: ' + i,
+                        details: invResult.length
+                    });
+                    result_count = result_count + invResult.length;
+                }
+                log.debug({
+                    title: 'Total Search Result',
+                    details: result_count
+                });
+
+                // TEST DATA
+                /**
+                 *  For Loop
+                 *  Index = 0;
+                 *  var data_index = 650;
+                 *  data_index < 1500;
+                 *  data_index += 1000;
+                 * 
+                 *  zendeskSearchRes.getRange({ start: 650, end:  650 + 999 == 1649}) });
+                 *  THIS WILL NOT RUN AS ITS OVER 1500 zendeskSearchRes.getRange({ start: 1650, end: 1350 + 999 = 2349 }) });
+                 *  THIS DOES NO RUN AS ITS ENDING AT 1500. zendeskSearchRes.getRange({ start: 2000, end: 2000 + 999 = 2999 });
+                 *  
+                 */
+
                 var index = 0;
-                for (var i = 0; i < zeeResultSet.length; i++){
-                    zeeResultSet[i].forEach(function(res){
+                for (var inv_data_index = 0; inv_data_index < invResultSet.length; inv_data_index++){
+                    invResultSet[inv_data_index].every(function(invData){ //, index, arr
                         var usageLimit = ctx.getRemainingUsage();
                         log.debug({
                             title: 'usageLimit',
                             details: usageLimit
                         });
-                        if (usageLimit < 400) { // TESTING PURPOSES: || index == 150
+
+                        // If SS Breaker has been scheduled, stop the script.
+                        // try {
+                        //     var ss_breaker = task.create({
+                        //         taskType: task.TaskType.SCHEDULED_SCRIPT,
+                        //         scriptId: 'customscript_ss_breaker',
+                        //         deploymentId: 'customdeploy_ss_breaker_pending',
+                        //     });
+                        //     var ss_breaker_task_id = ss_breaker.submit();
+                        //     var scriptStatus = task.checkStatus({
+                        //         taskId: ss_breaker_task_id
+                        //     });
+                        //     log.debug({
+                        //         title: 'Script Status',
+                        //         details: scriptStatus.status
+                        //     });
+                        // } catch (error) {
+                        //     log.debug({
+                        //         title: 'Error: SS Break Status',
+                        //         details: error
+                        //     });
+                        // }
+                        // if (scriptStatus.status == 'PENDING') { return false } else
+                        
+                        if (usageLimit < 200) { // TESTING PURPOSES: || index == 150
                             params = {
                                 custscript_ss_mass_inv_email_task_set: taskIdSet,
                                 custscript_ss_mass_inv_email_zee_set: selectedZeeSet,
@@ -156,7 +219,7 @@ function(ui, email, runtime, search, record, http, log, redirect, task, format, 
                             var reschedule_id = reschedule.submit();
                             log.error({
                                 title: 'Attempting: Rescheduling Script',
-                                details: reschedule
+                                details: JSON.stringify(reschedule_id)
                             });
                             return false;
                         } else {
@@ -165,11 +228,11 @@ function(ui, email, runtime, search, record, http, log, redirect, task, format, 
                                 details: main_index + " | " + index
                             });
                             // Customer Details 
-                            var internalid = res.getValue({ name: "internalid", join: 'customer' });
-                            var entityid = res.getValue({ name: "entityid", join: 'customer' });
-                            var companyname = res.getValue({ name: 'companyname', join: 'customer'  });
-                            var email_address = res.getValue({ name: 'email', join: 'customer'  });
-                            var cc_email = res.getValue({ name: 'custentity_accounts_cc_email', join: 'customer' });
+                            var internalid = invData.getValue({ name: "internalid", join: 'customer' });
+                            var entityid = invData.getValue({ name: "entityid", join: 'customer' });
+                            var companyname = invData.getValue({ name: 'companyname', join: 'customer'  });
+                            var email_address = invData.getValue({ name: 'email', join: 'customer'  });
+                            var cc_email = invData.getValue({ name: 'custentity_accounts_cc_email', join: 'customer' });
                             cc_email = formatCCEmail(cc_email)
                             
                             var cc_address = [];
@@ -184,16 +247,16 @@ function(ui, email, runtime, search, record, http, log, redirect, task, format, 
                             }
 
                             // Invoice Details
-                            var inv_id = res.getValue({ name: 'internalid' });
-                            var inv_type = res.getText({ name: 'custbody_inv_type' });
-                            var tot_am = '$' + res.getValue({ name: 'amount' });
+                            var inv_id = invData.getValue({ name: 'internalid' });
+                            var inv_type = invData.getText({ name: 'custbody_inv_type' });
+                            var tot_am = '$' + invData.getValue({ name: 'amount' });
                             if (isNullorEmpty(inv_type)) {
                                 inv_type = 'Service';
                             }
-                            var doc_num = res.getValue({ name: 'tranid' });
-                            var days_open = res.getValue({ name: 'daysopen' });
+                            var doc_num = invData.getValue({ name: 'tranid' });
+                            var days_open = invData.getValue({ name: 'daysopen' });
 
-                            var zee_name = res.getText({ name: 'partner' });
+                            var zee_name = invData.getText({ name: 'partner' });
 
                             try {
                                 // Create Object
@@ -230,6 +293,7 @@ function(ui, email, runtime, search, record, http, log, redirect, task, format, 
                 }  
             }
         }
+        setTaskCompleted(taskIdSet); // Set Task As Completed
         log.debug({
             title: 'END SCRIPT'
         })
@@ -246,8 +310,8 @@ function(ui, email, runtime, search, record, http, log, redirect, task, format, 
                 author: 35031, // Accounts: 35031 | Customer Service: 112209
                 body: email_template, // Get Email Template
                 subject: 'MailPlus Invoice: ' + invoice_number,
-                recipients: [email_address], // 'anesu.chakaingesu@mailplus.com.au' | 
-                cc: [cc_address], // 
+                recipients: [email_address], // 'anesu.chakaingesu@mailplus.com.au' | email_address
+                cc: [cc_address], // 'anesu.chakaingesu@mailplus.com.au' | cc_address
                 attachments: attachments,
                 relatedRecords:{
                     entityId: custSet // Add Email Reminder Notification as Message Under Customer
@@ -258,7 +322,7 @@ function(ui, email, runtime, search, record, http, log, redirect, task, format, 
                 author: 35031, // Accounts: 35031 | Customer Service: 112209
                 body: email_template, // Get Email Template
                 subject: 'MailPlus Invoice: ' + invoice_number,
-                recipients: [email_address], // 'anesu.chakaingesu@mailplus.com.au'
+                recipients: [email_address], // 'anesu.chakaingesu@mailplus.com.au' | email_address
                 attachments: attachments,
                 relatedRecords:{
                     entityId: custSet // Add Email Reminder Notification as Message Under Customer
@@ -286,27 +350,24 @@ function(ui, email, runtime, search, record, http, log, redirect, task, format, 
     function setInvoiceData(invoice_id){
         var rec = record.load({ type: 'invoice', id: invoice_id })
         rec.setValue({ fieldId: 'custbody_invoice_emailed_date', value: today_date });
-        rec.setValue({ fieldId: 'custbody_invoice_emailed', value: true });
+        rec.setValue({ fieldId: 'custbody_invoice_emailed', value: true }); // true | TEST = false
         rec.save();
 
         return true;
     }
 
-    function emailTemplate(companyname, email_address){
-        var emailMerger = render.mergeEmail({
-            templateId: 177, //. Mass Invoice Email Template - 363 | Invoice Email - 177
-            entity: null,
-            recipient: null,
-            supportCaseId: null,
-            transactionId: null,
-            customRecord: null
+    function setTaskCompleted(taskIdSet){
+        // Set Task as Completed;
+        if (taskIdSet.length > 1){
+            taskIdSet = taskIdSet.split("\u0005") // Remove NetSuite Random Space Thingo.
+        }
+        taskIdSet.forEach(function(taskId){
+            var taskRec = record.load({ type: 'task', id: taskId});
+            taskRec.setValue({ fieldId: 'status', value: "COMPLETE" }) // Set to Completed;
+            taskRec.save();
         });
-        var html_body = emailMerger.body;
-        // log.debug({
-        //     title: 'Email template',
-        //     details: html_body
-        // })
-        return html_body;
+
+        return true;
     }
 
     function createSentList(inv_id, doc_num, entityid, companyname, inv_type, tot_am, days_open, zee_name) {
@@ -343,6 +404,19 @@ function(ui, email, runtime, search, record, http, log, redirect, task, format, 
             }
             return true;
         });
+    }
+
+    function emailTemplate(){ //companyname, email_address
+        var emailMerger = render.mergeEmail({
+            templateId: 177, //. Mass Invoice Email Template - 363 | Invoice Email - 177
+            entity: null,
+            recipient: null,
+            supportCaseId: null,
+            transactionId: null,
+            customRecord: null
+        });
+        var html_body = emailMerger.body;
+        return html_body;
     }
 
     function formatCCEmail(email_address) {

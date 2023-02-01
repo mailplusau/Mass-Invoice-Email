@@ -82,15 +82,16 @@
             inlineHtml += '<style>.mandatory{color:red;}</style>';
 
             // New Website Color Schemes
-            // Main Color: #379E8F
-            // Background Color: #CFE0CE
-            // Button Color: #FBEA51
-            // Text Color: #103D39
+            // Old Main Color: #379E8F (Green)
+            // New Main Color: #095C7B (Blue)
+            // Background Color: #CFE0CE (Light Green)
+            // Button Color: #FBEA51 (Yellow)
+            // Text Color: #103D39 (Dark Green)
 
             // inlineHtml += '<div class="a" style="width: 100%; background-color: #CFE0CE; padding: 20px; min-height: 100vh; height: 100%; ">'; // margin-top: -40px
             // inlineHtml += '<h1 style="text-align: center; color: #103D39; display: inline-block; font-size: 22px; font-weight: bold; line-height: 33px; vertical-align: top; margin-bottom: 4px;">Service Debtors Email Automation</h1>';
-            inlineHtml += '<style>.nav > li.active > a, .nav > li.active > a:focus, .nav > li.active > a:hover { background-color: #379E8F; color: #fff }';
-            inlineHtml += '.nav > li > a, .nav > li > a:focus, .nav > li > a:hover { margin-left: 5px; margin-right: 5px; border: 2px solid #379E8F; color: #379E8F; }';
+            inlineHtml += '<style>.nav > li.active > a, .nav > li.active > a:focus, .nav > li.active > a:hover { background-color: #095C7B; color: #fff }';
+            inlineHtml += '.nav > li > a, .nav > li > a:focus, .nav > li > a:hover { margin-left: 5px; margin-right: 5px; border: 2px solid #095C7B; color: #095C7B; }';
             inlineHtml += '</style>';
 
             // Define alert window.
@@ -175,7 +176,7 @@
                 label: ' '
             });
 
-            form.clientScriptFileId = 5881059; // Sandbox:  | Prod: 5881059
+            form.clientScriptFileId = 5881059; // Sandbox: 5622062 | Prod: 5881059
 
             context.response.writePage(form);
         } else {
@@ -245,8 +246,8 @@
 
             // inlineHtml += '<div class="a" style="width: 100%; background-color: #CFE0CE; padding: 20px; min-height: 100vh; height: 100%; ">'; // margin-top: -40px
             // inlineHtml += '<h1 style="text-align: center; color: #103D39; display: inline-block; font-size: 22px; font-weight: bold; line-height: 33px; vertical-align: top; margin-bottom: 4px;">Service Debtors Email Automation</h1>';
-            inlineHtml += '<style>.nav > li.active > a, .nav > li.active > a:focus, .nav > li.active > a:hover { background-color: #379E8F; color: #fff }';
-            inlineHtml += '.nav > li > a, .nav > li > a:focus, .nav > li > a:hover { margin-left: 5px; margin-right: 5px; border: 2px solid #379E8F; color: #379E8F; }';
+            inlineHtml += '<style>.nav > li.active > a, .nav > li.active > a:focus, .nav > li.active > a:hover { background-color: #095C7B; color: #fff }';
+            inlineHtml += '.nav > li > a, .nav > li > a:focus, .nav > li > a:hover { margin-left: 5px; margin-right: 5px; border: 2px solid #095C7B; color: #095C7B; }';
             inlineHtml += '</style>';
 
             // Define information window.
@@ -262,7 +263,8 @@
 
             inlineHtml += goBack();
 
-            inlineHtml += 'Scheduled Emails Being Processed. Redirecting ...'
+            // inlineHtml += 'Scheduled Emails Being Processed. Redirecting ...'
+            inlineHtml += '<br><br>'
 
             inlineHtml += progressBar(totalInvCount);
 
@@ -299,7 +301,7 @@
                 displayType: ui.FieldDisplayType.HIDDEN
             }).defaultValue = 'POST';
 
-            form.clientScriptFileId = 5881059; // Sandbox:  | Prod: 5881059
+            form.clientScriptFileId = 5881059; // Sandbox: 5622062 | Prod: 5881059
 
             context.response.writePage(form);
         }
@@ -317,7 +319,7 @@
         
         // inlineQty += '<div style="width: 75%;">'
         inlineQty += '<table id="data_preview" class="table table-responsive table-striped customer tablesorter">'; // style="width: 75%;"
-        inlineQty += '<thead style="color: white; background-color: #379E8F;">';
+        inlineQty += '<thead style="color: white; background-color: #095C7B;">';
         inlineQty += '<tr class="text-center">';
         inlineQty += '</tr>';
         inlineQty += '</thead>';
@@ -340,7 +342,7 @@
         
         // inlineQty += '<div style="width: 75%;">'
         inlineQty += '<table id="data_preview2" class="table table-responsive table-striped customer tablesorter">'; // style="width: 75%;"
-        inlineQty += '<thead style="color: white; background-color: #379E8F;">';
+        inlineQty += '<thead style="color: white; background-color: #095C7B;">';
         inlineQty += '<tr class="text-center">';
         inlineQty += '</tr>';
         inlineQty += '</thead>';
@@ -361,8 +363,8 @@
 
         inlineQty += '<div class="col-xs-4"></div>';
         inlineQty += '<div class="col-4">';
-        // inlineQty += '<input type="button" style="background-color: #379E8F; color: white; font-weight: 700; border-color: transparent; border-width: 2px; border-radius: 15px; height: 30px;"  id="submit" value=""></input>';
-        inlineQty += '<button style="background-color: #379E8F; color: white; font-weight: 700; border-color: transparent; border-width: 2px; border-radius: 15px; height: 30px" type="button" id="submit" class="col-xs-4 submit_btn hide" >Submit</button>';
+        // inlineQty += '<input type="button" style="background-color: #095C7B; color: white; font-weight: 700; border-color: transparent; border-width: 2px; border-radius: 15px; height: 30px;"  id="submit" value=""></input>';
+        inlineQty += '<button style="background-color: #095C7B; color: white; font-weight: 700; border-color: transparent; border-width: 2px; border-radius: 15px; height: 30px" type="button" id="submit" class="col-xs-4 submit_btn hide" >Submit</button>';
         inlineQty += '</div>';
         inlineQty += '<div class="col-xs-4"></div>';
 
@@ -373,7 +375,7 @@
 
     function loadingSection() {
         var inlineQty = '<div class="form-group container loading_section"></div>';
-        inlineQty += '<style> .loading_section { border: 14px solid #f3f3f3; border-radius: 50%; border-top: 14px solid #379E8F; width: 90px; height: 90px; -webkit-animation: spin 2s linear infinite; /* Safari */ animation: spin 2s linear infinite;';
+        inlineQty += '<style> .loading_section { border: 14px solid #f3f3f3; border-radius: 50%; border-top: 14px solid #095C7B; width: 90px; height: 90px; -webkit-animation: spin 2s linear infinite; /* Safari */ animation: spin 2s linear infinite;';
         inlineQty += 'left: 50%; }' //position: fixed; z-index: 1000; 
             /* Safari */
         inlineQty += '@-webkit-keyframes spin {0% { -webkit-transform: rotate(0deg); } 100% { -webkit-transform: rotate(360deg); } }';
