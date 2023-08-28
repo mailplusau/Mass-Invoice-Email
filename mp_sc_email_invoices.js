@@ -45,7 +45,7 @@ function main() {
                 nlapiLogExecution('debug', 'Email invoice', 'Scheduling email invoicing processing. The schedule is : ' + rtnSchedule);
             }
         }
-    } catch ( ex ) {
+    } catch (ex) {
         errorStr = (ex instanceof nlobjError) ? ex.getCode() + '\n' + ex.getDetails() + '\n' + ex.getStackTrace() : ex.toString();
         nlapiLogExecution('error', 'Email invoice', 'Error emailing invoices : ' + errorStr);
     }
@@ -106,24 +106,30 @@ function emailInvoice(recId, invoiceDetail, emailSender) {
 
         // Establish the recipiant. (Note that this can either be the internal id or email address.)
         var emailCustomer = invoiceDetail.getValue('entity');
+        var mpexUsageReport = invoiceDetail.getValue('custbody_mpex_usage_report');
+
+        nlapiLogExecution('debug', 'mpexUsageReport', mpexUsageReport);
+
         // var emailCCEmail = invoiceDetail.getValue('custentity_alt_invoicing_email_address', 'customer');
         var customer_id = invoiceDetail.getValue('internalid', 'customer');
         // var emailCCEmail = isNullorEmpty(emailCCEmail) ? null : '[' +emailCCEmail;
 
         var custRec = nlapiLoadRecord('customer', customer_id);
         var emailCCEmail = custRec.getFieldValue('custentity_accounts_cc_email');
-        if(!isNullorEmpty(emailCCEmail)){
+        var partnerId = custRec.getFieldValue('partner');
+        if (!isNullorEmpty(emailCCEmail)) {
             var emailCCArray = emailCCEmail.split(',');
         } else {
             var emailCCArray = null;
         }
-        
+
 
         nlapiLogExecution('debug', 'Email invoice', 'Customer CC : ' + emailCCEmail);
         nlapiLogExecution('debug', 'Email invoice', 'Customer CC : ' + emailCCArray);
 
         // Set Template to be used for mail merge.
         var mergeResult = nlapiCreateEmailMerger(177).merge();
+        //var mergeResult = nlapiCreateEmailMerger(315).merge();
 
         // Determine the subject and body.
         var emailBody = mergeResult.getBody();
@@ -149,7 +155,13 @@ function emailInvoice(recId, invoiceDetail, emailSender) {
         arrAttachments = [];
 
         arrAttachments.push(nlapiPrintRecord('TRANSACTION', recId, 'PDF', null));
-        arrAttachments.push(nlapiLoadFile(parseInt(2511427)));
+        if (!isNullorEmpty(mpexUsageReport)) {
+            arrAttachments.push(nlapiLoadFile(parseInt(mpexUsageReport)));
+        }
+        if (partnerId == 1760249 || partnerId == '1760249') {
+            arrAttachments.push(nlapiLoadFile(parseInt(6415837)));
+        }
+        // arrAttachments.push(nlapiLoadFile(parseInt(6013021)));
 
         nlapiLogExecution('debug', 'Email invoice', 'Customer : ' + recId + '. Email created : ' + !isNullorEmpty(emailFile));
 
@@ -161,7 +173,7 @@ function emailInvoice(recId, invoiceDetail, emailSender) {
 
             nlapiLogExecution('debug', 'Email invoice', 'Email Sent : ' + recId);
         }
-    } catch ( ex ) {
+    } catch (ex) {
         errorStr = (ex instanceof nlobjError) ? ex.getCode() + '\n' + ex.getDetails() + '\n' + ex.getStackTrace() : ex.toString();
         nlapiLogExecution('error', 'Email invoice', 'Error in emailing invoice : ' + errorStr);
     }
