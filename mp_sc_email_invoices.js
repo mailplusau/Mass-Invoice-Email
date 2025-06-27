@@ -107,8 +107,11 @@ function emailInvoice(recId, invoiceDetail, emailSender) {
         // Establish the recipiant. (Note that this can either be the internal id or email address.)
         var emailCustomer = invoiceDetail.getValue('entity');
         var mpexUsageReport = invoiceDetail.getValue('custbody_mpex_usage_report');
+        var invType = invoiceDetail.getValue('custbody_inv_type');
 
+        nlapiLogExecution('debug', 'emailCustomer', emailCustomer);
         nlapiLogExecution('debug', 'mpexUsageReport', mpexUsageReport);
+        nlapiLogExecution('debug', 'invType', invType);
 
         // var emailCCEmail = invoiceDetail.getValue('custentity_alt_invoicing_email_address', 'customer');
         var customer_id = invoiceDetail.getValue('internalid', 'customer');
@@ -158,8 +161,9 @@ function emailInvoice(recId, invoiceDetail, emailSender) {
         if (!isNullorEmpty(mpexUsageReport)) {
             arrAttachments.push(nlapiLoadFile(parseInt(mpexUsageReport)));
         }
-        if (partnerId == 1760249 || partnerId == '1760249') {
-            arrAttachments.push(nlapiLoadFile(parseInt(6415837)));
+        if (invType == 8 || invType == '8') {
+            //Attache customer letter about the product price increase for July 2025 Onwards
+            arrAttachments.push(nlapiLoadFile(parseInt(7681010)));
         }
         // arrAttachments.push(nlapiLoadFile(parseInt(6013021)));
 

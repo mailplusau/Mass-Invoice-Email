@@ -3,7 +3,7 @@
  * 
  * $id:$
  * 
- * include :    mp_lib.js
+ * include : 	mp_lib.js
  */
 
 
@@ -21,6 +21,10 @@ function main(request, response) {
 
     // If we are not refreshing the page then either it's the first entry into the page or, if items have been selected, we are about to schedule the email facility.
     if (lRefreshPage != 'T') {
+
+        nlapiLogExecution('AUDIT', 'Line Item Count', request.getLineItemCount('custpage_invoice_sublist'));
+        // nlapiLogExecution('AUDIT', 'LRequest', request);
+
         // Check to establish whether there are any items.
         var nlineCount = (request.getLineItemCount('custpage_invoice_sublist') != null) ? request.getLineItemCount('custpage_invoice_sublist') : 0;
 
@@ -57,6 +61,7 @@ function main(request, response) {
 function displayForm(request, lRefreshPage) {
     // Ensure that header details are re-entered if you're refreshing the page.
     var strFranchisee = (lRefreshPage == 'T' && request.getParameter('custpage_franchisee') != null) ? request.getParameter('custpage_franchisee') : '';
+    nlapiLogExecution('AUDIT', 'strFranchisee', strFranchisee)
     var strCustomer = (lRefreshPage == 'T' && request.getParameter('custpage_customer') != null) ? request.getParameter('custpage_customer') : '';
     var strPostPeriod = (lRefreshPage == 'T' && request.getParameter('custpage_period') != null) ? request.getParameter('custpage_period') : '';
     var strAccount = (lRefreshPage == 'T' && request.getParameter('custpage_account') != null) ? request.getParameter('custpage_account') : '';
@@ -68,17 +73,17 @@ function displayForm(request, lRefreshPage) {
     var strInvMtd = (lRefreshPage == 'T' && request.getParameter('custpage_invmtd') != null) ? request.getParameter('custpage_invmtd') : '';
 
     // Define the character returned by the multi select to be replaced by a ','.
-    //  var strChar5 = String.fromCharCode(5);
-    //  strFranchisee = strFranchisee.indexOf(strChar5) != -1 ? strFranchisee.split(strChar5) : strFranchisee;
-    //  strCustomer   = strCustomer.indexOf(strChar5)   != -1 ? strCustomer.split(strChar5)   : strCustomer;
+    var strChar5 = String.fromCharCode(5);
+    strFranchisee = strFranchisee.indexOf(strChar5) != -1 ? strFranchisee.split(strChar5) : strFranchisee;
+    //	strCustomer   = strCustomer.indexOf(strChar5)   != -1 ? strCustomer.split(strChar5)   : strCustomer;
 
     // Create the form.
     var form = nlapiCreateForm('Mass Invoice Email');
 
-    // Client side validation.      
+    // Client side validation.    	
     form.setScript('customscript_cs_invoice_email');
 
-    var fld = form.addField('custpage_franchisee', 'select', 'Franchisee', 'partner');
+    var fld = form.addField('custpage_franchisee', 'multiselect', 'Franchisee', 'partner');
     fld.setMandatory(false);
     fld.setDefaultValue(strFranchisee);
     fld.setHelpText('If entered, results will be filter by Franchisee.');
@@ -125,7 +130,7 @@ function displayForm(request, lRefreshPage) {
     fld.setDisplayType('hidden');
 
     // Add sublist of available invoices based on the filters above.
-    getInvoiceLines(form, strFranchisee, strCustomer, strPostPeriod, strCreateDateFrom, strCreateDateTo, strDueDateFrom, strDueDateTo, strAccount /*, strInvType, strInvMtd*/ );
+    getInvoiceLines(form, strFranchisee, strCustomer, strPostPeriod, strCreateDateFrom, strCreateDateTo, strDueDateFrom, strDueDateTo, strAccount /*, strInvType, strInvMtd*/);
 
     // Add buttons (Submit and Reset)
     form.addSubmitButton('Submit');
@@ -147,6 +152,9 @@ function displayForm(request, lRefreshPage) {
  * @param {Object} strDueDateTo
  */
 function getInvoiceLines(form, strFranchisee, strCustomer, strPostPeriod, strCreateDateFrom, strCreateDateTo, strDueDateFrom, strDueDateTo, strAccount, strInvType, strInvMtd) {
+
+    nlapiLogExecution('AUDIT', 'strFranchisee', strFranchisee)
+
     // Add sublist.
     var sublist = form.addSubList('custpage_invoice_sublist', 'list', 'Select Invoices');
 
@@ -212,7 +220,7 @@ function getInvoiceLines(form, strFranchisee, strCustomer, strPostPeriod, strCre
 
     // Add satchel filter.
     if (!isNullorEmpty(strAccount)) {
-       filters[nPos++] = new nlobjSearchFilter('account', null, 'anyof', strAccount);
+        filters[nPos++] = new nlobjSearchFilter('account', null, 'anyof', strAccount);
     }
 
     // Add invoice distribution method filter.
@@ -221,19 +229,19 @@ function getInvoiceLines(form, strFranchisee, strCustomer, strPostPeriod, strCre
     // }
 
     // Create search with which to populate the Sublist
-        var columns = new Array();
-        columns[0] = new nlobjSearchColumn('internalid');
-        columns[1] = new nlobjSearchColumn('partner');
-        columns[2] = new nlobjSearchColumn('entity');
-        columns[3] = new nlobjSearchColumn('number');
-        columns[4] = new nlobjSearchColumn('formulatext');
-        columns[5] = new nlobjSearchColumn('status');
-        columns[6] = new nlobjSearchColumn('location');
-        columns[7] = new nlobjSearchColumn('postingperiod');
-        columns[8] = new nlobjSearchColumn('trandate');
-        columns[9] = new nlobjSearchColumn('duedate');
-        columns[10] = new nlobjSearchColumn('amount');
-        columns[11] = new nlobjSearchColumn('custbody_inv_type');
+    var columns = new Array();
+    columns[0] = new nlobjSearchColumn('internalid');
+    columns[1] = new nlobjSearchColumn('partner');
+    columns[2] = new nlobjSearchColumn('entity');
+    columns[3] = new nlobjSearchColumn('number');
+    columns[4] = new nlobjSearchColumn('formulatext');
+    columns[5] = new nlobjSearchColumn('status');
+    columns[6] = new nlobjSearchColumn('location');
+    columns[7] = new nlobjSearchColumn('postingperiod');
+    columns[8] = new nlobjSearchColumn('trandate');
+    columns[9] = new nlobjSearchColumn('duedate');
+    columns[10] = new nlobjSearchColumn('amount');
+    columns[11] = new nlobjSearchColumn('custbody_inv_type');
 
     // Populate the sublist from the search.
     var searchResults = nlapiSearchRecord('transaction', 'customsearch_invoice_mass_email', filters, columns);
@@ -254,7 +262,9 @@ function stringSelectedItems(request) {
     // Loop through available lines.
     for (var i = 1; i <= request.getLineItemCount('custpage_invoice_sublist'); i++) {
         // Only process selected invoices.
+        // nlapiLogExecution('AUDIT', 'Checked', request.getLineItemValue('custpage_invoice_sublist', 'custpage_check', i))
         if (request.getLineItemValue('custpage_invoice_sublist', 'custpage_check', i) == 'T') {
+            nlapiLogExecution('AUDIT', 'Checked', request.getLineItemValue('custpage_invoice_sublist', 'custpage_check', i))
             // Update the string. Ensure that a new line delimiter is added if required. 
             strInvoices = (strInvoices.length > 0) ? strInvoices + ',' : strInvoices;
             strInvoices += request.getLineItemValue('custpage_invoice_sublist', 'internalid', i);
