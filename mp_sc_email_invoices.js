@@ -163,7 +163,7 @@ function emailInvoice(recId, invoiceDetail, emailSender) {
         }
         if (invType == 8 || invType == '8') {
             //Attache customer letter about the product price increase for July 2025 Onwards
-            arrAttachments.push(nlapiLoadFile(parseInt(7681010)));
+            // arrAttachments.push(nlapiLoadFile(parseInt(7681010)));
         }
         // arrAttachments.push(nlapiLoadFile(parseInt(6013021)));
 
